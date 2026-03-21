@@ -1,16 +1,25 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
 function App(){
+  
   //game states
-  const [gameState, setGameState] = useState("searching");
+  const [gameState, setGameState] = useState("Home");
   const [countdown, setCountdown] = useState(5);
   const [startTime, setStartTime] = useState(null);
+
   //data states
-  const [userInput,setuserInput] = useState("");
   const [roomId, setroomId] = useState("");
+  const [userInput,setuserInput] = useState("");
   const [targetText, setTargetText] = useState("");
   const [opponentProgress, setOpponentProgress] = useState(0);
+  const [readyPlayers, setReadyPlayers] = useState(0);
+  const [isReadyClicked, setIsReadyClicked] = useState(false);
+
+  const [myWPM, setMyWPM] = useState(0);
+  const [opponentWPM, setOpponentWPM] = useState(0);
+  const [opponentLeft, setOpponentLeft] = useState(false);
   
   const socketRef = useRef(null);
 
@@ -21,6 +30,10 @@ function App(){
       setroomId(roomId);
       setGameState("lobby");
       console.log('Match found in room: ', roomId);
+    })
+    
+    socketRef.current.on('readyPlayers_count',(count)=>{
+      setReadyPlayers(count);
     })
 
     socketRef.current.on('countdown_start',()=>{
@@ -44,6 +57,15 @@ function App(){
     socketRef.current.on('opponent_progress',(progress)=>{
       setOpponentProgress(progress);
     });
+
+    socketRef.current.on('opponent_finished',(wpm)=>{
+      setOpponentWPM(wpm);
+    })
+
+    socketRef.current.on('opponent_left',()=>{
+      setOpponentLeft(true);
+    })
+
     //cleanup function 
     return()=>{
       socketRef.current.disconnect();
@@ -51,10 +73,24 @@ function App(){
     }
   },[]);
 
-  const handleReady = () => {
-    socketRef.current.emit('player_ready', { roomId });
+  const handlePlay = () => {
+    setOpponentLeft(false);
+    socketRef.current.emit('find_match');
+    setGameState("searching");
   }
 
+  const handleReady = () => {
+    if(isReadyClicked === false){
+      setIsReadyClicked(true);
+      socketRef.current.emit('player_ready', { roomId });
+    }
+    else{
+      setIsReadyClicked(false);
+      socketRef.current.emit('player_not_ready', { roomId });
+    }
+  }
+
+  
   const handleTyping = (e) => {
     const newText = e.target.value;
     setuserInput(newText);
@@ -66,14 +102,46 @@ function App(){
         const endTime = Date.now();
         const elapsedTime = (endTime-startTime)/60000;
         const wpm = Math.round((targetText.length / 5) / elapsedTime);
-        alert("Race Finished! Your WPM: " + wpm);
+        setGameState("results");
+        setMyWPM(wpm);
+        socketRef.current.emit("race_finished",{roomId, wpm});
       }
     } 
   };
+  
+  const handlePlayAgain = () => {
+    setGameState("lobby");
+    setReadyPlayers(0);
+    setMyWPM(0);
+    setOpponentWPM(0);
+    setuserInput("");
+    setTargetText("");
+    setOpponentProgress(0);
+    setOpponentLeft(false);
+    setIsReadyClicked(false);
+  };
+
+  const handleExit = () =>{
+    setGameState("Home");
+    setroomId("");
+    setMyWPM(0);
+    setOpponentWPM(0);
+    setuserInput("");
+    setTargetText("");
+    setOpponentProgress(0);
+    socketRef.current.emit('leave_room', {roomId});
+  }
 
   return(
     <div style={{ padding: '20px', fontFamily: 'monospace' }}>
       <h1>Custom Typing Game</h1>
+
+      {gameState === "Home" && (
+        <div>
+          <div>Welcome to the typing game!</div>
+          <button onClick={handlePlay}>Play</button>
+        </div>
+      )}
 
       {gameState === "searching" && (
         <h2 style={{backgroundColor: 'grey', textAlign: 'center'}}>Waiting for an opponent to join...</h2>
@@ -81,10 +149,18 @@ function App(){
       
       {gameState === "lobby" && (
         <div>
-          <h2 style={{backgroundColor: 'green', textAlign: 'center'}}>Match Found!</h2>
+          <h2 style={{backgroundColor: 'green', textAlign: 'center'}}>Lobby!</h2>
+          <div>Room ID: {roomId}</div>
+          <div>Ready : {readyPlayers}</div>
+          {opponentLeft === true && (
+            <div>
+              {`Opponent left the room :<`}
+            </div>
+          )}
           <button onClick={handleReady} style={{ padding: '10px 20px', fontSize: '18px' }}>
             I am Ready!
           </button>
+          <button style={{ padding: '10px 20px', fontSize: '18px' }} onClick={handleExit}>Exit Room</button>
         </div>
       )}
 
@@ -109,6 +185,21 @@ function App(){
           <h3 style={{ color: 'red' }}>Opponent Progress: {opponentProgress}%</h3>
           
           <h3 style={{ color: 'lightgreen' }}>Your Progress: {Math.floor((userInput.length / targetText.length) * 100 || 0)}%</h3>
+        </div>
+      )}
+
+      {gameState === "results" && (
+        <div>
+          <div>Results : </div>
+          <div>Your WPM: {myWPM}</div>
+          {opponentLeft === false && (<div>Opponent's WPM: {opponentWPM > 0 ? `${opponentWPM}` : "Typing..."}</div>)}
+          {opponentLeft === true && (
+            <div>
+              {`Opponent left the room :<`}
+            </div>
+          )}
+          <button style={{ color: 'grey' }} onClick={handlePlayAgain}>Play Again</button>
+          <button style={{ color: 'grey' }} onClick={handleExit}>Exit</button>
         </div>
       )}
 

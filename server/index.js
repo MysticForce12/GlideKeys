@@ -30,36 +30,45 @@ const activeRooms = {};
 io.on('connection', (socket)=>{
     console.log('A user connected',socket.id);
 
-    if(waitingPlayer){
+    socket.on('find_match',()=>{
 
-      const roomId = `room_${waitingPlayer.id}_${socket.id}`;
-      socket.join(roomId);
-      waitingPlayer.join(roomId);
-      
-      const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
-      
-      activeRooms[roomId] = {readyCount: 0, quote: randomQuote}
-
-      io.to(roomId).emit('match_found', roomId);
-      console.log(`Match found in room: ${roomId}. Waiting for players to ready up...`);
-      waitingPlayer = null;
-    }
-    else{
-      waitingPlayer = socket;
-      socket.emit('waiting_for_opponent');
-      console.log("Player is waiting for opponent in room: ", socket.id);
-    }
+      if(waitingPlayer){
+  
+        const roomId = `room_${waitingPlayer.id}_${socket.id}`;
+        socket.join(roomId);
+        socket.roomId = roomId;
+        waitingPlayer.join(roomId);
+        waitingPlayer.roomId = roomId;
+        
+        const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
+        
+        activeRooms[roomId] = {readyCount: 0, quote: randomQuote}
+  
+        io.to(roomId).emit('match_found', roomId);
+        console.log(`Match found in room: ${roomId}. Waiting for players to ready up...`);
+        waitingPlayer = null;
+      }
+      else{
+        waitingPlayer = socket;
+        socket.emit('waiting_for_opponent');
+        console.log("Player is waiting for opponent in room: ", socket.id);
+      }
+    })
     
     socket.on('player_ready',(data)=>{
+
       activeRooms[data.roomId].readyCount += 1;
+      io.to(data.roomId).emit('readyPlayers_count',activeRooms[data.roomId].readyCount);
       console.log(`Player ${socket.id} ready in room: ${data.roomId}. Ready count: ${activeRooms[data.roomId].readyCount}`);
-      
-      if(activeRooms[data.roomId].readyCount === 2){
+      setTimeout(()=>{},1500);
+
+      if(activeRooms[data.roomId] && activeRooms[data.roomId].readyCount === 2){
+        const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
         io.to(data.roomId).emit('countdown_start');
         console.log(`Both players ready in room: ${data.roomId}. Starting countdown...`);
         
         setTimeout(()=>{
-          const savedQuote = activeRooms[data.roomId].quote;
+          const savedQuote = randomQuote;
           
           io.to(data.roomId).emit('game_started',{
             roomId: data.roomId, 
@@ -72,13 +81,39 @@ io.on('connection', (socket)=>{
       }
     });
 
+    socket.on('player_not_ready',({roomId})=>{
+      if(activeRooms[roomId]){
+        activeRooms[roomId].readyCount -= 1;
+        io.to(roomId).emit('readyPlayers_count',activeRooms[roomId].readyCount);
+      }
+    })
+
     socket.on('typing_progress',(data)=>{
       console.log("Typing from:", socket.id, "Room:", data.roomId);
       socket.to(data.roomId).emit('opponent_progress',data.progress);
     })
 
+    socket.on('race_finished',(data)=>{
+      console.log(`Race finished in room: ${data.roomId}`);
+      activeRooms[data.roomId].readyCount = 0;
+      socket.to(data.roomId).emit('opponent_finished', data.wpm);
+    })
+
+    socket.on('leave_room', ({roomId})=>{
+        if(activeRooms[roomId]){
+          activeRooms[roomId].readyCount = (activeRooms[roomId].readyCount <= 0) ? 0 : activeRooms[roomId].readyCount - 1;
+          io.to(roomId).emit('readyPlayers_count',activeRooms[roomId].readyCount);
+          socket.leave(roomId);
+          console.log(`Player ${socket.id} left room: ${roomId}. Ready count: ${activeRooms[roomId].readyCount}`);
+          io.to(roomId).emit('opponent_left');
+        }
+    })
+
     socket.on('disconnect',()=>{
         console.log('user disconnected',socket.id);
+        if(socket.roomId){
+            io.to(socket.roomId).emit('opponent_left');
+        }
         if (waitingPlayer === socket) {
             waitingPlayer = null; 
         }
