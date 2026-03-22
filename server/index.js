@@ -17,11 +17,11 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 const targetQuotes = [
-    "back a in large nation on show under way both to only want call word move under just move have out just who back too stand",
-    "even than mean place move high world person go develop of another see which run it more will show govern",
-    "hand do all want she nation large by say hold world govern this into to even make problem one house consider not place point not",
-    "never before seem then great nation back same in person not here might change as great leave without against right time play off no out between know into general house without only they it feel",
-    "now at for never other face what public where under the that many since these plan seem about end fact place child through time get consider high make no will school look follow over back how know"
+    // "back a in large nation on show under way both to only want call word move under just move have out just who back too stand",
+    "even than mean place move high world person"
+    // "hand do all want she nation large by say hold world govern this into to even make problem one house consider not place point not",
+    // "never before seem then great nation back same in person not here might change as great leave without against right time play off no out between know into general house without only they it feel",
+    // "now at for never other face what public where under the that many since these plan seem about end fact place child through time get consider high make no will school look follow over back how know"
 ];
 
 let waitingPlayer = null;
@@ -93,10 +93,14 @@ io.on('connection', (socket)=>{
       socket.to(data.roomId).emit('opponent_progress',data.progress);
     })
 
+    socket.on('live_updates',(data)=>{
+      socket.to(data.roomId).emit('opponent_updates', data);
+    });
+
     socket.on('race_finished',(data)=>{
       console.log(`Race finished in room: ${data.roomId}`);
       activeRooms[data.roomId].readyCount = 0;
-      socket.to(data.roomId).emit('opponent_finished', data.wpm);
+      socket.to(data.roomId).emit('opponent_finished', data.liveWPM);
     })
 
     socket.on('leave_room', ({roomId})=>{

@@ -17,11 +17,22 @@ function App(){
   const [readyPlayers, setReadyPlayers] = useState(0);
   const [isReadyClicked, setIsReadyClicked] = useState(false);
 
+  const [liveWPM, setLiveWPM] = useState(0);
+  const [liveAccuracy, setLiveAccuracy] = useState(0);
   const [myWPM, setMyWPM] = useState(0);
+  const [opponentLiveAccuracy, setOpponentLiveAccuracy] = useState(0);
+  const [opponentLiveWPM, setOpponentLiveWPM] = useState(0);
   const [opponentWPM, setOpponentWPM] = useState(0);
   const [opponentLeft, setOpponentLeft] = useState(false);
   
   const socketRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(()=>{
+    if(gameState === "playing" && inputRef.current){
+      inputRef.current.focus();
+    }
+  },[gameState]);
 
   useEffect(()=>{
     socketRef.current = io('http://localhost:3000');
@@ -50,6 +61,8 @@ function App(){
     socketRef.current.on('game_started',(gameData)=>{
       setTargetText(gameData.quote);
       setGameState("playing");
+      setReadyPlayers(0);
+      setIsReadyClicked(false);
       setStartTime(Date.now());
       setuserInput("");
     });
@@ -57,6 +70,11 @@ function App(){
     socketRef.current.on('opponent_progress',(progress)=>{
       setOpponentProgress(progress);
     });
+
+    socketRef.current.on('opponent_updates',(data)=>{
+      setOpponentLiveWPM(data.liveWPM);
+      setOpponentLiveAccuracy(data.liveAccuracy);
+    })
 
     socketRef.current.on('opponent_finished',(wpm)=>{
       setOpponentWPM(wpm);
@@ -89,46 +107,79 @@ function App(){
       socketRef.current.emit('player_not_ready', { roomId });
     }
   }
-
   
   const handleTyping = (e) => {
+    
     const newText = e.target.value;
     setuserInput(newText);
+    
+    const correctChars = newText.split('').filter((char, index) => char === targetText[index]);
+    if(correctChars.length > 0){
+      const accuracy = (correctChars.length / newText.length) * 100;
+      setLiveAccuracy(accuracy);
+      const endTime = Date.now();
+      const elapsedTime = (endTime-startTime)/60000;
+      if(elapsedTime > 0.03){
+        const wpm = Math.round((correctChars.length/5)/elapsedTime);
+        setLiveWPM(wpm);
+      }
+    }
+
+    socketRef.current.emit('live_updates',{roomId, liveWPM, liveAccuracy});
+
     if (targetText.startsWith(newText)) {
       const progress = (newText.length/targetText.length)*100;
       const roundedProgress = Math.floor(progress);
       socketRef.current.emit("typing_progress", { roomId, progress: roundedProgress });
+      
       if(roundedProgress === 100){
-        const endTime = Date.now();
-        const elapsedTime = (endTime-startTime)/60000;
-        const wpm = Math.round((targetText.length / 5) / elapsedTime);
+        setMyWPM(liveWPM);
         setGameState("results");
-        setMyWPM(wpm);
-        socketRef.current.emit("race_finished",{roomId, wpm});
+        console.log("in handle typing rounded progress liveWPM : ",liveWPM);
+        socketRef.current.emit("race_finished",{roomId, liveWPM});
       }
     } 
   };
   
+  const handleKeyDown =(e) =>{
+    if(e.key.startsWith('Arrow')){
+      e.preventDefault();
+      return;
+    }
+    if(e.key === 'Backspace'){
+      const isPerfectText = targetText.startsWith(userInput);
+      if(isPerfectText){
+        e.preventDefault();
+      }
+    }
+  }
+
   const handlePlayAgain = () => {
-    setGameState("lobby");
-    setReadyPlayers(0);
     setMyWPM(0);
     setOpponentWPM(0);
+    setLiveAccuracy(0);
+    setLiveWPM(0);
+    setOpponentLiveAccuracy(0);
+    setOpponentLiveWPM(0);
     setuserInput("");
     setTargetText("");
     setOpponentProgress(0);
     setOpponentLeft(false);
-    setIsReadyClicked(false);
+    setGameState("lobby");
   };
 
   const handleExit = () =>{
-    setGameState("Home");
     setroomId("");
     setMyWPM(0);
+    setLiveAccuracy(0);
+    setLiveWPM(0);
+    setOpponentLiveAccuracy(0);
+    setOpponentLiveWPM(0);
     setOpponentWPM(0);
     setuserInput("");
     setTargetText("");
     setOpponentProgress(0);
+    setGameState("Home");
     socketRef.current.emit('leave_room', {roomId});
   }
 
@@ -170,21 +221,51 @@ function App(){
 
       {gameState === "playing" && (
         <div>
-          <div style={{ marginBottom: '20px', fontSize: '20px', backgroundColor: '#0c0606', padding: '10px' }}>
-            {targetText}
+          <div style={{ marginBottom: '20px', fontSize: '24px', backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '10px', lineHeight: '1.5', userSelect: 'none' }} onClick={() => inputRef.current && inputRef.current.focus()}>
+            {targetText.split('').map((char, index)=>{  
+              let textColor = '#bbbbbb'; 
+              let bgColor = 'transparent';
+              if(index < userInput.length){
+                if(userInput[index] === char){
+                  textColor = 'lightgreen';
+                }
+                else{
+                  textColor = 'red';
+                  bgColor = '#4a0000';
+                }
+              }
+              if (index === userInput.length) {
+                bgColor = '#444444'; 
+              }
+              return (
+                <span key={index} style={{ color: textColor, backgroundColor: bgColor, borderRadius: '3px' }}>
+                  {char}
+                </span>
+              );
+            })}
           </div>
           
           <textarea 
+            ref={inputRef}
             name="userInput" 
             value={userInput} 
             id="inputBox" 
             onChange={handleTyping}
-            style={{ width: '100%', height: '100px', fontSize: '18px' }}
+            onKeyDown={handleKeyDown}
+            style={{ position: 'absolute', opacity: 0, height: 0, width: 0 }}
           ></textarea>
           
-          <h3 style={{ color: 'red' }}>Opponent Progress: {opponentProgress}%</h3>
+          <div>
+            <h3 style={{ color: 'lightgreen' }}>Your Progress: {Math.floor((userInput.length / targetText.length) * 100 || 0)}%</h3>
+            <div>Your WPM: {liveWPM}</div>
+            <div>Accuracy: {liveAccuracy.toFixed(2)}%</div>
+          </div>
+          <div>
+            <h3 style={{ color: 'red' }}>Opponent Progress: {opponentProgress}%</h3>
+            <div>Opponent WPM: {opponentLiveWPM}</div>
+            <div>Opponent Accuracy: {opponentLiveAccuracy.toFixed(2)}%</div>
+          </div>
           
-          <h3 style={{ color: 'lightgreen' }}>Your Progress: {Math.floor((userInput.length / targetText.length) * 100 || 0)}%</h3>
         </div>
       )}
 
