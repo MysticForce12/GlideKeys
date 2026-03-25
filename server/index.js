@@ -4,19 +4,30 @@ const app = express();
 const { Server } = require("socket.io");
 const cors = require('cors');
 
-app.use(cors());
+const server = http.createServer(app);
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 app.get('/ping', (req, res) => {
   res.status(200).send('Server is awake!');
 });
 
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:5173", 
-        methods: ["GET", "POST"] 
-    }
-});
 
 const PORT = process.env.PORT || 3000;
 
