@@ -3,8 +3,11 @@ const http = require('http');
 const app = express();
 const { Server } = require("socket.io");
 const cors = require('cors');
-
 const server = http.createServer(app);
+
+require('dotenv').config();
+const connectDB = require('./config/db');
+connectDB();
 
 const allowedOrigins = [
   "http://localhost:5173",
