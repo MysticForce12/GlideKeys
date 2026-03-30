@@ -4,10 +4,12 @@ const app = express();
 const { Server } = require("socket.io");
 const cors = require('cors');
 const server = http.createServer(app);
+const authRoutes = require('./routes/authRoutes');
 
 require('dotenv').config();
 const connectDB = require('./config/db');
 connectDB();
+
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -18,6 +20,10 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
+
+app.use(express.json());
+
+app.use('/api/auth', authRoutes);
 
 const io = new Server(server, {
   cors: {

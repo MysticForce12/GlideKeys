@@ -6,11 +6,14 @@ const userSchema = new mongoose.Schema({
         required: true, 
         unique: true,
         minlength: 3,
-        maxlength: 20
+        maxlength: 20,
+        lowercase: true,
+        trim: true
     },
     password: { 
         type: String, 
-        required: true
+        required: true,
+        trim: true
     },
     avgWPM:{
         type: Number,
