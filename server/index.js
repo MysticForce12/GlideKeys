@@ -5,6 +5,7 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const server = http.createServer(app);
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 require('dotenv').config();
 const connectDB = require('./config/db');
@@ -24,6 +25,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 const io = new Server(server, {
   cors: {
@@ -50,75 +52,120 @@ const targetQuotes = [
 
 let waitingPlayer = null;
 const activeRooms = {};
+const roomCapacity = 5;
 
 io.on('connection', (socket)=>{
-    console.log('A user connected',socket.id);
+
+    console.log('A user connected with id : ',socket.id);
 
     socket.on('find_match',()=>{
+      
+      let roomToJoin = null;
+      
+      for(const roomId in activeRooms){
+        const room = activeRooms[roomId];
+        const currPlayersCount = Object.keys(room.players).length;
+        if (room.status === "waiting" && currPlayersCount < roomCapacity) {
+            roomToJoin = roomId;
+            break;
+        }
+      }
 
-      if(waitingPlayer){
+      if(roomToJoin){
+        socket.join(roomToJoin);
+        socket.roomId = roomToJoin;
+        activeRooms[roomToJoin].players[socket.id] = {
+          isReady : false,
+          wpm : 0,
+          progress : 0,
+          accuracy : 0
+        };
+        socket.emit('match_found', roomToJoin);
+        io.to(roomToJoin).emit('player_joined_room', { 
+              playerCount: Object.keys(activeRooms[roomToJoin].players).length 
+        });
   
-        const roomId = `room_${waitingPlayer.id}_${socket.id}`;
-        socket.join(roomId);
-        socket.roomId = roomId;
-        waitingPlayer.join(roomId);
-        waitingPlayer.roomId = roomId;
-        
-        const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
-        
-        activeRooms[roomId] = {readyCount: 0, quote: randomQuote}
-  
-        io.to(roomId).emit('match_found', roomId);
-        console.log(`Match found in room: ${roomId}. Waiting for players to ready up...`);
-        waitingPlayer = null;
+        console.log(`Player ${socket.id} joined existing room: ${roomToJoin}`);
       }
       else{
-        waitingPlayer = socket;
-        socket.emit('waiting_for_opponent');
-        console.log("Player is waiting for opponent in room: ", socket.id);
-      }
-    })
-    
-    socket.on('player_ready',(data)=>{
-
-      activeRooms[data.roomId].readyCount += 1;
-      io.to(data.roomId).emit('readyPlayers_count',activeRooms[data.roomId].readyCount);
-      console.log(`Player ${socket.id} ready in room: ${data.roomId}. Ready count: ${activeRooms[data.roomId].readyCount}`);
-      setTimeout(()=>{},1500);
-
-      if(activeRooms[data.roomId] && activeRooms[data.roomId].readyCount === 2){
+        const newRoomId = `room_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        socket.join(newRoomId);
+        socket.roomId = newRoomId;
         const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
-        io.to(data.roomId).emit('countdown_start');
-        console.log(`Both players ready in room: ${data.roomId}. Starting countdown...`);
+        activeRooms[newRoomId] = {
+          quote: randomQuote,
+          status: "waiting", 
+          players: {
+            [socket.id]: { 
+              isReady: false,
+              wpm: 0,
+              progress: 0,
+              accuracy: 0
+            }
+          }
+        };
+
+        socket.emit('match_found', newRoomId);
+        console.log(`Player ${socket.id} created new room: ${newRoomId}`);
+      } 
+
+    });
+    
+    socket.on('player_ready',(roomId)=>{
+
+      if(activeRooms[roomId] && activeRooms[roomId].players && activeRooms[roomId].players[socket.id]){
         
-        setTimeout(()=>{
-          const savedQuote = randomQuote;
+        activeRooms[roomId].players[socket.id].isReady = true;
+        const playersArr = Object.values(activeRooms[roomId].players);
+        const allReady = playersArr.every(player => player.isReady);
+
+        if(playersArr.length >=2 && allReady){
+
+          const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
+          io.to(roomId).emit('countdown_start');
+          console.log(`All players ready in room: ${roomId}. Starting countdown...`)
+          activeRooms[roomId].status = "playing";
           
-          io.to(data.roomId).emit('game_started',{
-            roomId: data.roomId, 
-            quote: savedQuote
-          });
-          
-          console.log(`Game started in room: ${data.roomId}`);
-        },5000);
-      
+          setTimeout(() => {
+            io.to(roomId).emit('game_started', {
+              roomId: roomId, 
+              quote: randomQuote
+            });
+            console.log(`Game started in room: ${roomId}`);
+          }, 5000);
+        }
+  
       }
     });
 
-    socket.on('player_not_ready',({roomId})=>{
-      if(activeRooms[roomId]){
-        activeRooms[roomId].readyCount -= 1;
-        io.to(roomId).emit('readyPlayers_count',activeRooms[roomId].readyCount);
+
+    socket.on('player_not_ready',(roomId)=>{
+      if(activeRooms[roomId] && activeRooms[roomId].players && activeRooms[roomId].players[socket.id]){
+        activeRooms[roomId].players[socket.id].isReady = false;
+        let readyCount = 0;
+        for(const playerId in activeRooms[roomId].players){
+          if(activeRooms[roomId].players[playerId].isReady === true){
+            readyCount++;
+          }
+        }
+        io.to(roomId).emit('readyPlayers_count',readyCount);
       }
     })
 
     socket.on('typing_progress',(data)=>{
       console.log("Typing from:", socket.id, "Room:", data.roomId);
-      socket.to(data.roomId).emit('opponent_progress',data.progress);
+      socket.to(data.roomId).emit('opponent_progress', { 
+        playerId: socket.id, 
+        progress: data.progress 
+      });
     })
 
     socket.on('live_updates',(data)=>{
-      socket.to(data.roomId).emit('opponent_updates', data);
+      socket.to(data.roomId).emit('opponent_updates', { 
+        playerId: socket.id, 
+        currWPM: data.currWPM, 
+        currAccuracy: data.currAccuracy 
+      });
     });
 
     socket.on('race_finished',(data)=>{

@@ -9,9 +9,7 @@ const Arena = ({targetText, roomId, gameState, startTime, setMyWPM, setGameState
     const [userInput,setuserInput] = useState("");
     const [liveWPM, setLiveWPM] = useState(0);
     const [liveAccuracy, setLiveAccuracy] = useState(0);
-    const [opponentLiveAccuracy, setOpponentLiveAccuracy] = useState(0);
-    const [opponentLiveWPM, setOpponentLiveWPM] = useState(0);
-    const [opponentProgress, setOpponentProgress] = useState(0);
+    const [opponents, setOpponents] = useState({});
 
     const inputRef = useRef(null);
     const currWPMRef = useRef(0);
@@ -19,13 +17,25 @@ const Arena = ({targetText, roomId, gameState, startTime, setMyWPM, setGameState
 
     useEffect(()=>{
 
-        socket.on('opponent_progress',(progress)=>{
-            setOpponentProgress(progress);
+        socket.on('opponent_progress',({playerId, progress})=>{
+            setOpponents(prev => ({
+                ...prev,
+                [playerId]: {
+                    ...prev[playerId],
+                    progress : progress
+                }
+            }));
         });
 
-        socket.on('opponent_updates',(data)=>{
-            setOpponentLiveWPM(data.currWPM);
-            setOpponentLiveAccuracy(data.currAccuracy);
+        socket.on('opponent_updates',({playerId, currWPM, currAccuracy})=>{
+            setOpponents(prev => ({
+                ...prev,
+                [playerId]: {
+                    ...prev[playerId],
+                    currWPM : currWPM,
+                    currAccuracy: currAccuracy
+                }
+            }));
         });
 
         return ()=>{

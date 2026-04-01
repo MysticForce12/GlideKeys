@@ -23,11 +23,11 @@ const Lobby =({roomId,handleExit,opponentLeft})=>{
     const handleReady = () => {
         if(isReadyClicked === false){
             setIsReadyClicked(true);
-            socket.emit('player_ready', { roomId });
+            socket.emit('player_ready', roomId);
         }
         else{
             setIsReadyClicked(false);
-            socket.emit('player_not_ready', { roomId });
+            socket.emit('player_not_ready', roomId);
         }
     }
 
