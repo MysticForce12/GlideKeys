@@ -1,3 +1,5 @@
+//Note : Needs to be updated with the new 5 players room logic, currently only supports 2 players
+
 import { useEffect, useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import Header from '../components/layout/Header';
@@ -11,13 +13,13 @@ function GameDashboard(){
   const [gameState, setGameState] = useState("Home");
   const [countdown, setCountdown] = useState(5);
   const [startTime, setStartTime] = useState(null);
+  const [players, setPlayers] = useState({});
 
   //data states
   const [myWPM, setMyWPM] = useState(0);
-  const [opponentWPM, setOpponentWPM] = useState(0);
   const [roomId, setroomId] = useState("");
   const [targetText, setTargetText] = useState("");
-  const [opponentLeft, setOpponentLeft] = useState(false);
+  // const [opponentLeft, setOpponentLeft] = useState(false);
 
   const socket = useSocket();
 
@@ -27,8 +29,9 @@ function GameDashboard(){
       console.log('connected');
     })
 
-    socket.on('match_found',(roomId)=>{
-      setroomId(roomId);
+    socket.on('match_found',({roomToJoin, playersInRoom})=>{
+      setroomId(roomToJoin);
+      setPlayers(playersInRoom);
       setGameState("lobby");
       console.log('Match found in room: ', roomId);
     })
@@ -50,8 +53,14 @@ function GameDashboard(){
       setStartTime(Date.now());
     });
 
-    socket.on('opponent_finished',(wpm)=>{
-      setOpponentWPM(wpm);
+    socket.on('opponent_finished',({playerId, wpm})=>{
+      setPlayers(prevPlayers =>({
+        ...prevPlayers,
+        [playerId]:{
+          ...prevPlayers[playerId],
+          wpm: wpm
+        }
+      }))
     })
 
     socket.on('opponent_left',()=>{

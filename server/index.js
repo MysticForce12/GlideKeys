@@ -65,22 +65,29 @@ io.on('connection', (socket)=>{
       for(const roomId in activeRooms){
         const room = activeRooms[roomId];
         const currPlayersCount = Object.keys(room.players).length;
-        if (room.status === "waiting" && currPlayersCount < roomCapacity) {
+        if(room.status === "waiting" && room.status === "finished" && currPlayersCount < roomCapacity) {
             roomToJoin = roomId;
             break;
         }
       }
 
       if(roomToJoin){
+        
         socket.join(roomToJoin);
         socket.roomId = roomToJoin;
+        
         activeRooms[roomToJoin].players[socket.id] = {
           isReady : false,
           wpm : 0,
           progress : 0,
           accuracy : 0
         };
-        socket.emit('match_found', roomToJoin);
+
+        socket.emit('match_found', {
+          roomId: roomToJoin, 
+          playersInRoom : activeRooms[roomToJoin].players;
+        });
+        
         io.to(roomToJoin).emit('player_joined_room', { 
               playerCount: Object.keys(activeRooms[roomToJoin].players).length 
         });
@@ -89,8 +96,10 @@ io.on('connection', (socket)=>{
       }
       else{
         const newRoomId = `room_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        
         socket.join(newRoomId);
         socket.roomId = newRoomId;
+        
         const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
         activeRooms[newRoomId] = {
           quote: randomQuote,
@@ -105,7 +114,10 @@ io.on('connection', (socket)=>{
           }
         };
 
-        socket.emit('match_found', newRoomId);
+        socket.emit('match_found',{
+          roomId: newRoomId, 
+          playersInRoom : activeRooms[newRoomId].players
+        });
         console.log(`Player ${socket.id} created new room: ${newRoomId}`);
       } 
 
@@ -168,10 +180,16 @@ io.on('connection', (socket)=>{
       });
     });
 
-    socket.on('race_finished',(data)=>{
+    socket.on('race_finished',({roomId, currWPM})=>{
       console.log(`Server says: Race finished in room: ${data.roomId}`);
-      activeRooms[data.roomId].readyCount = 0;
-      socket.to(data.roomId).emit('opponent_finished', data.liveWPM);
+      if(activeRooms[roomId] && activeRooms[roomId].players && activeRooms[roomId].players[socket.id]){
+        activeRooms[roomId].players[socket.id].wpm = currWPM;
+        socket.to(roomId).emit('opponent_finished',{
+          playerId: socket.id,
+          wpm: currWPM
+        });
+        
+      }
     })
 
     socket.on('leave_room', ({roomId})=>{
