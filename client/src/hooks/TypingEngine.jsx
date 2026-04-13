@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { calculateAccuracy, calculateWPM, calculateProgress } from '../utils/gameMath';
 
-export const useTypingEngine = (targetText, roomId, startTime, setMyWPM, setGameState) =>{
+export const useTypingEngine = (targetText, roomId, startTime, setMyWPM) =>{
     
     const socket = useSocket();
     
@@ -43,7 +43,7 @@ export const useTypingEngine = (targetText, roomId, startTime, setMyWPM, setGame
 
     const handleTyping = (e) =>{
         const newText = e.target.value.replace(/\u00A0/g, " ").replace(/\s+/g, " ");
-        // Check for mistake to trigger glitch/flicker effect
+        // Checking mistakes to trigger flicker effects
         const isTypingCorrectly = targetText.startsWith(newText);
         if(!isTypingCorrectly && newText.length > userInput.length){
             setCombo(0);
@@ -53,9 +53,14 @@ export const useTypingEngine = (targetText, roomId, startTime, setMyWPM, setGame
         }
         setUserInput(newText);
         
-        if(newText.length > userInput.length){
-            setCombo(prev => prev + 1);
+        const typedChar = newText[newText.length - 1];
+        const targetChar = targetText[newText.length - 1];
+        if (typedChar === targetChar) {
+            if (typedChar === " ") {
+                setCombo(prev => prev + 1);
+            }
         }
+
         const correctChars = newText.split('').filter((char, index) => char === targetText[index]);
         if(correctChars.length > 0){
             const accuracy = calculateAccuracy(correctChars.length, newText.length);
@@ -87,13 +92,12 @@ export const useTypingEngine = (targetText, roomId, startTime, setMyWPM, setGame
             }
             if(roundedProgress === 100){
                 setMyWPM(currWPMRef.current);
-                setGameState("results");
                 if(socket){
-                    socket.emit("race_finished", { 
+                    socket.emit("player_finished", { 
                         roomId: roomId, 
                         currWPM: currWPMRef.current 
                     });
-                    console.log("race finished emitted with WPM: ", currWPMRef.current);
+                    console.log("player finished emitted with WPM: ", currWPMRef.current);
                 }
             }
         }

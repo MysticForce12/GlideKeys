@@ -1,10 +1,15 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useTypingEngine } from '../hooks/TypingEngine';
+import { useSocket } from '../context/SocketContext';
 
-const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, setGameState }) => {
+const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, players }) => {
 
+    const socket = useSocket();
     const inputRef = useRef(null);
-    const { userInput, liveWPM, liveAccuracy, opponents, combo, isMistakeFlicker, progress, handleTyping, handleKeyDown} = useTypingEngine(targetText, roomId, startTime, setMyWPM, setGameState);
+    const activeCharRef = useRef(null); 
+    const [scrollOffset, setScrollOffset] = useState(0);
+
+    const { userInput, liveWPM, liveAccuracy, opponents, combo, isMistakeFlicker, progress, handleTyping, handleKeyDown} = useTypingEngine(targetText, roomId, startTime, setMyWPM);
 
     useEffect(() => {
         if(gameState === "playing" && inputRef.current) {
@@ -12,141 +17,235 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, setGameStat
         }
     }, [gameState]);
 
-    const opponentIds = Object.keys(opponents || {});
+    useEffect(() => {
+        if (activeCharRef.current) {
+            const currentOffset = activeCharRef.current.offsetTop;
+            const targetScroll = Math.floor(currentOffset / 40) * 40;
+            setScrollOffset(targetScroll);
+        }
+    }, [userInput]);
+
+    {/*Lane logic */}
+    const totalPlayers = players ? Object.keys(players).length : 1;
+    const numLanes = Math.max(1, Math.min(totalPlayers, 5)); 
+    const myLaneIndex = Math.floor((numLanes - 1) / 2);
+    const oppIds = Object.keys(players || {}).filter(id => id !== socket?.id);
+
+    //speedometer 
+    const gaugeCircumference = 339.29;
+    const gaugeFillPercent = Math.min((liveWPM / 150) * 100, 100); 
+    const gaugeOffset = gaugeCircumference - (gaugeFillPercent / 100) * gaugeCircumference;
+
+    //combo quake
+    const shakeIntensity = combo > 20 ? Math.min((combo - 20) / 80, 1) : 0; 
+    const shakeX = shakeIntensity > 0 ? (Math.random() - 0.5) * 8 * shakeIntensity : 0;
+    const shakeY = shakeIntensity > 0 ? (Math.random() - 0.5) * 8 * shakeIntensity : 0;
 
     return(
-        <div className={`relative w-full h-[800px] bg-[#0A0A0F] overflow-hidden flex flex-col items-center select-none font-sans transition-transform duration-75 ${isMistakeFlicker ? 'translate-x-1 translate-y-1 scale-105' : ''}`}
+        <div 
+            className="relative w-full h-[calc(100vh-160px)] min-h-[600px] bg-[#0A0A0F] overflow-hidden flex flex-col items-center select-none font-sans"
             onClick={() => inputRef.current?.focus()}
         >
-            {/* 🔝 TOP BAR (Floating Glass Panel) */}
-            <div className="absolute top-6 z-50 px-8 py-3 rounded-full bg-[#14141E]/60 backdrop-blur-md border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] flex gap-8 items-center">
-                <span className="text-blue-400 font-bold tracking-widest text-sm">⚡ TYPING RACE</span>
-                <span className="text-gray-400 font-mono text-sm">ROOM #{roomId}</span>
-                <span className="text-pink-400 font-mono font-bold text-sm">⏱ {liveWPM} WPM</span>
-            </div>
+            {/* combo fire overlay*/}
+            <div 
+                className="absolute inset-0 pointer-events-none z-0 mix-blend-screen transition-opacity duration-500 ease-out"
+                style={{
+                    opacity: shakeIntensity * 0.4, 
+                    background: 'radial-gradient(circle at center 70%, #ea580c 0%, #7c2d12 40%, transparent 80%)'
+                }}
+            />
 
-            {/* 🧱 MAIN ARENA (2.5D Perspective) */}
-            <div className="absolute inset-0 flex justify-center items-end pb-32" style={{ perspective: '1000px' }}>
-                {/* The 3D Floor Plane */}
-                <div className="relative w-[800px] h-[1200px] flex justify-between"
-                    style={{ 
-                        transform: 'rotateX(60deg) translateY(100px)', 
-                        transformOrigin: 'bottom center',
-                        
-                        background: 'linear-gradient(to top, rgba(10,10,15,1), rgba(10,10,15,0))'
-                    }}
-                >
-                    {/* Render 5 OpponentLanes */}
-                    {[0, 1, 2, 3, 4].map((laneIndex) => {
-                        
-                        const nativePlayer = laneIndex === 2;
-                       
-                        let laneProgress = 0;
-                        let stats = {wpm : 0, acc: 0};
-
-                        if(nativePlayer){
-                            laneProgress = progress;
-                            stats = {wpm: liveWPM, acc: liveAccuracy};
-                        } else{
-                            const oppIdx = laneIndex < 2 ? laneIndex : laneIndex - 1;
-                            const oppId = opponentIds[oppIdx];
-                            laneProgress = opponents[oppId]?.progress || 0;
-                        }
-
-                        // Styling logic based on player vs opponent and combo
-                        const laneColor = nativePlayer ? (isMistakeFlicker ? 'rgba(239,68,68,0.5)' : 'rgba(56,189,248,0.2)') : 'rgba(236,72,153,0.1)';
-                        const borderColor = nativePlayer ? (isMistakeFlicker ? '#ef4444' : '#38bdf8') : '#ec4899';
-                        const isHighCombo = nativePlayer && combo >= 10;
-
-                        return(
-                            <div 
-                                key={laneIndex} 
-                                className="relative w-[120px] h-full border-x transition-colors duration-300"
-                                style={{ 
-                                    borderColor: borderColor,
-                                    backgroundColor: laneColor,
-                                    boxShadow: isHighCombo ? `0 0 30px ${borderColor} inset` : 'none'
-                                }}
-                            >
-                                {/* Moving Grid Lines Illusion */}
-                                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_49%,rgba(255,255,255,0.1)_50%)] bg-[length:100%_40px] animate-[scrollDown_1s_linear_infinite]" />
-
-                                {/* 🏃 Avatar Tracker */}
-                                <div 
-                                    className="absolute w-full flex justify-center transition-all duration-300 ease-out"
-                                    style={{ bottom: `${laneProgress}%` }}
-                                >
-                                    {/* The Orb */}
-                                    <div 
-                                        className="w-8 h-8 rounded-full z-10"
-                                        style={{
-                                            backgroundColor: borderColor,
-                                            boxShadow: `0 0 20px ${borderColor}, 0 0 40px ${borderColor}`,
-                                            transform: 'rotateX(-60deg)' // Counter-rotate to face camera
-                                        }}
-                                    >
-                                        {/* Speed Trail */}
-                                        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-4 h-32 opacity-50 blur-sm rounded-full" 
-                                             style={{ background: `linear-gradient(to bottom, ${borderColor}, transparent)` }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+            {/* wpm meter*/}
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+                <div className="relative flex items-center justify-center w-32 h-32">
+                    <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+                        <circle
+                            cx="64" cy="64" r="54"
+                            stroke="rgba(255,255,255,0.05)" strokeWidth="8" fill="transparent"
+                        />
+                        <circle
+                            cx="64" cy="64" r="54"
+                            stroke="url(#wpmGradient)" strokeWidth="8" fill="transparent"
+                            strokeDasharray={gaugeCircumference}
+                            strokeDashoffset={gaugeOffset}
+                            strokeLinecap="round"
+                            className="transition-all duration-300 ease-out"
+                        />
+                        <defs>
+                            <linearGradient id="wpmGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#38bdf8" />
+                                <stop offset="100%" stopColor="#ec4899" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center mt-1">
+                        <span className="text-4xl font-black text-white leading-none">{liveWPM}</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-none mt-2">WPM</span>
+                    </div>
                 </div>
             </div>
 
-            {/* 🔽 BOTTOM INPUT PANEL (Glassmorphism) */}
-            <div className="absolute bottom-10 z-50 w-[800px] flex flex-col gap-4">
-                
-                {/* Stats Row */}
-                <div className="flex justify-between items-center px-4">
-                    <div className="text-gray-400 font-mono text-lg">
-                        WPM: <span className="text-white font-bold">{liveWPM}</span>
-                    </div>
-                    <div className={`text-2xl font-bold italic transition-opacity ${combo >= 5 ? 'opacity-100 text-orange-400 drop-shadow-[0_0_10px_orange]' : 'opacity-0'}`}>
-                        {combo}x COMBO 🔥
-                    </div>
-                    <div className="text-gray-400 font-mono text-lg">
-                        ACC: <span className="text-white font-bold">{Math.round(liveAccuracy)}%</span>
-                    </div>
+            {/* Mistake flicker and quake */}
+            <div 
+                className="absolute inset-0 transition-transform duration-75"
+                style={{
+                    transform: isMistakeFlicker 
+                        ? 'translate(4px, 4px) scale(1.05)' 
+                        : `translate(${shakeX}px, ${shakeY}px)`
+                }}
+            >
+                {/* Top Bar */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 px-8 py-3 rounded-full bg-[#14141E]/60 backdrop-blur-md border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] flex gap-8 items-center">
+                    <span className="text-blue-400 font-bold tracking-widest text-sm">TYPING RACE</span>
+                    <span className="text-gray-400 font-mono text-sm">ROOM #{roomId}</span>
                 </div>
 
-                {/* Text Display Area */}
-                <div 
-                    className={`relative w-full bg-[#111620]/80 backdrop-blur-xl border ${isMistakeFlicker ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'border-gray-700/50'} rounded-2xl p-8 text-2xl leading-[1.7] font-mono shadow-2xl transition-all duration-200`}
-                >
-                    <div className="relative z-20 pointer-events-none break-words">
-                        {targetText.split('').map((char, index) => {
-                            let colorClass = 'text-gray-600';
-                            let bgClass = 'bg-transparent';
+                {/* Main Arena */}
+                <div className="absolute inset-0 flex justify-center items-end pb-[280px]" style={{ perspective: '1000px' }}>
+                   
+                    {/*Floor Plane */}
+                    <div className="relative w-[800px] h-[1200px] flex justify-center gap-12"
+                        style={{ 
+                            transform: 'rotateX(60deg) translateY(100px)', 
+                            transformOrigin: 'bottom center',
+                            background: 'linear-gradient(to top, rgba(10,10,15,1), rgba(10,10,15,0))'
+                        }}
+                    >
+                        {/*Lanes */}
+                        {[...Array(numLanes)].map((_, laneIndex) => {
                             
-                            if (index < userInput.length) {
-                                colorClass = 'text-gray-400 opacity-50'; // Typed text fades
-                            } else if (index === userInput.length) {
-                                colorClass = 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'; // Current char glow
-                                bgClass = 'border-b-2 border-teal-400';
+                            const nativePlayer = laneIndex === myLaneIndex;
+                            let laneProgress = 0;
+                            let oppId = null;
+
+                            if(nativePlayer){
+                                laneProgress = progress;
+                            } else {
+                                const oppIndex = laneIndex < myLaneIndex ? laneIndex : laneIndex - 1;
+                                oppId = oppIds[oppIndex];
+                                laneProgress = opponents[oppId]?.progress || 0;
                             }
 
-                            return (
-                                <span key={index} className={`${colorClass} ${bgClass} transition-colors duration-100`}>
-                                    {char}
-                                </span>
+                            const isFinished = laneProgress >= 100;
+                            
+                            const laneColor = nativePlayer ? (isMistakeFlicker ? 'rgba(239,68,68,0.5)' : 'rgba(56,189,248,0.2)') : 'rgba(236,72,153,0.1)';
+                            const borderColor = nativePlayer ? (isMistakeFlicker ? '#ef4444' : '#38bdf8') : '#ec4899';
+                            const glowShadow = `0 0 20px ${borderColor}, 0 0 40px ${borderColor}`;
+                            const isHighCombo = nativePlayer && combo >= 10 && !isFinished;
+
+                            return(
+                                <div 
+                                    key={laneIndex} 
+                                    className="relative w-[120px] h-full border-x transition-colors duration-500 overflow-hidden"
+                                    style={{ 
+                                        borderColor: borderColor,
+                                        backgroundColor: laneColor,
+                                        boxShadow: isHighCombo ? `0 0 30px ${borderColor} inset` : 'none'
+                                    }}
+                                >
+                                    {/* Checkered Finish line for race finished*/}
+                                    {isFinished && (
+                                        <div 
+                                            className="absolute top-0 left-0 w-full h-16 z-20"
+                                            style={{
+                                                background: 'repeating-conic-gradient(#ffffff 0% 25%, #111620 0% 50%) 50% / 30px 30px',
+                                                borderBottom: `2px solid ${borderColor}`,
+                                                boxShadow: `0 10px 20px rgba(0,0,0,0.8)`
+                                            }}
+                                        />
+                                    )}
+
+                                    <div className={`absolute inset-0 bg-[linear-gradient(to_bottom,transparent_49%,rgba(255,255,255,0.1)_50%)] bg-[length:100%_40px] ${isFinished ? '' : 'animate-[scrollDown_1s_linear_infinite]'}`} />
+                                    
+                                    <div 
+                                        className="absolute w-full flex justify-center transition-all duration-300 ease-out"
+                                        style={{ bottom: `${laneProgress}%` }}
+                                    >
+                                        <div 
+                                            className="w-8 h-8 rounded-full z-10 flex items-center justify-center font-bold text-white text-xs transition-colors duration-500"
+                                            style={{
+                                                backgroundColor: borderColor,
+                                                boxShadow: glowShadow,
+                                                transform: 'rotateX(-60deg)' 
+                                            }}
+                                        >
+                                            {isFinished ? '✓' : (nativePlayer ? 'Y' : 'O')}
+                                            {!isFinished && (
+                                                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-4 h-32 opacity-50 blur-sm rounded-full" 
+                                                     style={{ background: `linear-gradient(to bottom, ${borderColor}, transparent)` }}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
+                </div>
 
-                    <input 
-                        type="text"
-                        ref={inputRef}
-                        value={userInput} 
-                        onChange={handleTyping}
-                        onKeyDown={handleKeyDown}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-text z-30"
-                        autoComplete="off"
-                        spellCheck={false}
-                    />
+                {/* InputPanel */}
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-[800px] flex flex-col gap-4">
+                    
+                    {/*Stats Row */}
+                    <div className="relative flex justify-between items-end px-4 mb-2">
+                        
+                        {/*Combo */}
+                        <div className="absolute left-1/2 -translate-x-1/2 flex justify-center items-center">
+                            <div className={`text-2xl font-bold italic transition-all duration-300 ${combo >= 5 ? 'opacity-100 text-orange-400 drop-shadow-[0_0_15px_#ea580c] scale-110' : 'opacity-0 scale-90'}`}>
+                                {combo}x COMBO 🔥
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`relative w-full bg-[#111620]/90 backdrop-blur-xl border ${ isMistakeFlicker? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'border-gray-700/50'} rounded-2xl px-8 overflow-hidden`}
+                        style={{ height: '80px' }} 
+                    >
+                        <div className="flex flex-col justify-center h-full">
+                            
+                            <div 
+                                className="relative z-20 pointer-events-none break-words text-2xl transition-transform duration-300 ease-out"
+                                style={{ 
+                                    lineHeight: '40px', 
+                                    transform: `translateY(-${scrollOffset}px)` 
+                                }}
+                            >
+                                {targetText.split('').map((char, index) => {
+                                    let colorClass = 'text-gray-600';
+                                    let bgClass = 'bg-transparent';
+                                    let isCurrentChar = false;
+                                    
+                                    if (index < userInput.length) {
+                                        colorClass = 'text-gray-400 opacity-50';
+                                    } else if (index === userInput.length) {
+                                        colorClass = 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]';
+                                        bgClass = 'border-b-2 border-teal-400';
+                                        isCurrentChar = true; 
+                                    }
+
+                                    return (
+                                        <span 
+                                            key={index} 
+                                            ref={isCurrentChar ? activeCharRef : null} 
+                                            className={`${colorClass} ${bgClass} transition-colors duration-100`}
+                                        >
+                                            {char}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <input 
+                            type="text"
+                            ref={inputRef}
+                            value={userInput} 
+                            onChange={handleTyping}
+                            onKeyDown={handleKeyDown}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-text z-30"
+                            autoComplete="off"
+                            spellCheck={false}
+                        />
+                    </div>
                 </div>
             </div>
             
@@ -161,265 +260,3 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, setGameStat
 };
 
 export default Arena;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { useState, useEffect, useRef } from 'react';
-// import { useSocket } from '../context/SocketContext';
-// import { calculateAccuracy, calculateWPM, calculateProgress } from '../utils/gameMath';
-
-// const Arena = ({targetText, roomId, gameState, startTime, setMyWPM, setGameState})=>{
-    
-//     const socket = useSocket();
-    
-//     const [userInput,setuserInput] = useState("");
-//     const [liveWPM, setLiveWPM] = useState(0);
-//     const [liveAccuracy, setLiveAccuracy] = useState(0);
-//     const [opponents, setOpponents] = useState({});
-
-//     const inputRef = useRef(null);
-//     const currWPMRef = useRef(0);
-//     const currAccuracyRef = useRef(0);
-
-//     useEffect(()=>{
-
-//         socket.on('opponent_progress',({playerId, progress})=>{
-//             setOpponents(prev => ({
-//                 ...prev,
-//                 [playerId]: {
-//                     ...prev[playerId],
-//                     progress : progress
-//                 }
-//             }));
-//         });
-
-//         socket.on('opponent_updates',({playerId, currWPM, currAccuracy})=>{
-//             setOpponents(prev => ({
-//                 ...prev,
-//                 [playerId]: {
-//                     ...prev[playerId],
-//                     currWPM : currWPM,
-//                     currAccuracy: currAccuracy
-//                 }
-//             }));
-//         });
-
-//         return ()=>{
-//             socket.off('opponent_progress');
-//             socket.off('opponent_updates');
-//         }
-
-//     },[socket]);
-
-//     useEffect(()=>{
-//         if(gameState === "playing" && inputRef.current){
-//             inputRef.current.focus();
-//         }
-//     },[gameState]);
-
-    
-//     const handleTyping = (e) => {
-        
-//         const newText = e.target.value.replace(/\u00A0/g, " ").replace(/\s+/g, " ");
-//         setuserInput(newText);
-//         const correctChars = newText.split('').filter((char, index) => char === targetText[index]);
-        
-//         if(correctChars.length > 0){
-//             const accuracy = calculateAccuracy(correctChars.length, newText.length);
-//             const wpm = calculateWPM(correctChars.length, startTime, Date.now());
-//             currAccuracyRef.current = accuracy;
-//             currWPMRef.current = wpm;
-//             setLiveAccuracy(accuracy);
-            
-//             if (wpm > 0) setLiveWPM(wpm);
-//             socket.emit('live_updates',{
-//                 roomId: roomId, 
-//                 currWPM: wpm, 
-//                 currAccuracy: accuracy
-//             });
-//         }
-
-//         const isValidText = newText.split('').every((char, i) => char === targetText[i]);
-
-//         if(isValidText) {
-//             const roundedProgress = calculateProgress(newText.length, targetText.length);
-//             socket.emit("typing_progress", { roomId, progress: roundedProgress });
-            
-//             if(roundedProgress === 100){
-//                 setMyWPM(liveWPM);
-//                 setGameState("results");
-//                 socket.emit("race_finished",{roomId, liveWPM});
-//                 console.log("race finished event emitted with WPM:", liveWPM);
-//             }
-//         } 
-//     };
-  
-//     const handleKeyDown =(e) =>{
-//         if(e.key.startsWith('Arrow')){
-//             e.preventDefault();
-//             return;
-//         }
-//         if(e.key === 'Backspace'){
-//             const isPerfectText = targetText.startsWith(userInput);
-//             if(isPerfectText){
-//                 e.preventDefault();
-//             }
-//         }
-//     }
-
-//     return(
-//         <div className="max-w-5xl mx-auto flex flex-col gap-8">
-
-//             <div className="h-44 w-full flex flex-row items-center justify-between">
-                
-//                 <div className="w-[42%] h-full bg-[#0b1728] border border-blue-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-//                     <div className="flex items-center gap-3">
-//                         <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">Y</div>
-//                         <span className="text-xl font-bold tracking-wide">You</span>
-//                         <span className="text-xs bg-slate-700 px-2 py-1 rounded text-gray-300 ml-2">YOU</span>
-//                     </div>
-//                     <div className="flex gap-8 mt-4">
-//                         <div>
-//                             <div className="text-gray-500 text-sm font-semibold mb-1">WPM</div>
-//                             <div className="text-3xl font-extrabold text-blue-400">{liveWPM}</div>
-//                         </div>
-//                         <div>
-//                             <div className="text-gray-500 text-sm font-semibold mb-1">Accuracy</div>
-//                             <div className="text-3xl font-extrabold text-blue-400">{liveAccuracy.toFixed(1)}%</div>
-//                         </div>
-//                     </div>
-//                 </div>
-
-//                 <div className="text-5xl font-extrabold text-orange-500 italic drop-shadow-[0_0_10px_rgba(249,115,22,0.5)]">
-//                 VS
-//                 </div>
-
-//                 <div className="w-[42%] h-full bg-[#1e0a1f] border border-pink-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(236,72,153,0.15)]">
-//                     <div className="flex items-center gap-3">
-//                         <div className="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">O</div>
-//                         <span className="text-xl font-bold tracking-wide">Opponent</span>
-//                     </div>
-//                     <div className="flex gap-8 mt-4">
-//                         <div>
-//                             <div className="text-gray-500 text-sm font-semibold mb-1">WPM</div>
-//                             <div className="text-3xl font-extrabold text-pink-400">{opponentLiveWPM}</div>
-//                         </div>
-//                         <div>
-//                             <div className="text-gray-500 text-sm font-semibold mb-1">Accuracy</div>
-//                             <div className="text-3xl font-extrabold text-pink-400">{opponentLiveAccuracy.toFixed(1)}%</div>
-//                         </div>
-//                     </div>
-//                 </div>
-
-//             </div>
-
-
-//             <div className="w-full bg-[#111620] border border-gray-700/50 rounded-2xl p-6 flex flex-col gap-6 shadow-lg">
-//                 <div className="text-center text-gray-400 font-semibold tracking-widest text-sm uppercase mb-2">
-//                     Race Progress
-//                 </div>
-
-//                 <div className="flex items-center gap-4">
-//                     <span className="text-blue-400 font-bold text-sm w-20">You</span>
-//                     <div className="flex-1 bg-gray-800 rounded-full h-3">
-//                         <div className="bg-[#38bdf8] h-full rounded-full shadow-[0_0_12px_rgba(56,189,248,0.8)] transition-all duration-150 ease-out relative" style={{ width: `${targetText ? Math.min(Math.floor((userInput.length / targetText.length) * 100), 100) : 0}%` }}>
-//                             <div className="absolute -right-3 -top-2 text-xl">
-//                                 🚀
-//                             </div>
-//                         </div>
-//                     </div>
-//                 </div>
-
-//                 <div className="flex items-center gap-4">
-//                     <span className="text-pink-400 font-bold text-sm w-20">Opponent</span>
-//                     <div className="flex-1 bg-gray-800 rounded-full h-3">
-
-//                         <div className="bg-[#f472b6] h-full rounded-full shadow-[0_0_12px_rgba(244,114,182,0.8)] transition-all duration-150 ease-out relative" style={{ width: `${opponentProgress}%` }}>
-//                             <div className="absolute -right-3 -top-2 text-xl">
-//                                 🛸
-//                             </div>
-//                         </div>
-//                     </div>
-//                 </div>
-
-//             </div>
-
-//             <div className="w-full bg-[#111620] border border-gray-700/50 rounded-2xl p-10 text-3xl leading-[1.7] font-mono shadow-lg cursor-text select-none relative overflow-hidden" 
-//             onClick={() => inputRef.current && inputRef.current.focus()}>
-                
-//                 {targetText.split('').map((char, index) => {  
-//                     let colorClass = 'text-slate-600'; 
-//                     let bgClass = 'bg-transparent';
-                    
-//                     if(index < userInput.length){
-//                         if(userInput[index] === char){
-//                             colorClass = 'text-teal-400'; 
-//                         } 
-//                         else{
-//                             colorClass = 'text-red-400'; 
-//                             bgClass = 'bg-red-900/40 rounded-md'; 
-//                         }
-//                     }
-
-//                     if(index === userInput.length){
-//                         bgClass = 'bg-slate-600 rounded animate-pulse'; 
-//                         colorClass = 'text-white';
-//                     }
-//                     return(
-//                         <span key={index} className={`${colorClass} ${bgClass} transition-colors duration-100 px-[1px]`}>
-//                             {char}
-//                         </span>
-//                     );
-//                 })}
-
-//                 <input 
-//                     type="text"
-//                     ref={inputRef}
-//                     name="userInput" 
-//                     value={userInput} 
-//                     id="inputBox" 
-//                     onChange={handleTyping}
-//                     onKeyDown={handleKeyDown}
-//                     className="absolute inset-0 w-full h-full opacity-0 cursor-text z-10 text-transparent bg-transparent"
-//                     autoComplete="off"
-//                     autoCorrect="off"
-//                     autoCapitalize="none"
-//                     spellCheck={false}
-//                     data-gramm="false"
-//                     data-gramm_editor="false"
-//                     data-enable-grammarly="false"
-//                 />
-                
-//             </div>   
-//         </div>
-//     );
-// }
-
-// export default Arena;

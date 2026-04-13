@@ -1,5 +1,3 @@
-//Note : Needs to be updated with the new 5 players room logic, currently only supports 2 players
-
 import { useEffect, useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import Header from '../components/layout/Header';
@@ -9,17 +7,15 @@ import Arena from './Arena';
 import Results from './Results';
 
 function GameDashboard(){
-  //game states
+
   const [gameState, setGameState] = useState("Home");
   const [countdown, setCountdown] = useState(5);
   const [startTime, setStartTime] = useState(null);
   const [players, setPlayers] = useState({});
 
-  //data states
   const [myWPM, setMyWPM] = useState(0);
   const [roomId, setroomId] = useState("");
   const [targetText, setTargetText] = useState("");
-  // const [opponentLeft, setOpponentLeft] = useState(false);
 
   const socket = useSocket();
 
@@ -29,12 +25,34 @@ function GameDashboard(){
       console.log('connected');
     })
 
-    socket.on('match_found',({roomToJoin, playersInRoom})=>{
-      setroomId(roomToJoin);
+    socket.on('match_found',({roomId, playersInRoom})=>{
+      setroomId(roomId);
       setPlayers(playersInRoom);
       setGameState("lobby");
       console.log('Match found in room: ', roomId);
-    })
+    });
+
+    socket.on('player_joined_room', ({ playerId, playerData }) => {
+        setPlayers(prev => ({
+            ...prev,
+            [playerId]: playerData
+        }));
+    });
+
+    socket.on('player_ready_status', ({ playerId, isReady }) => {
+        setPlayers(prev => ({
+            ...prev,
+            [playerId]: { ...prev[playerId], isReady: isReady }
+        }));
+    });
+
+    socket.on('opponent_left', ({ playerId }) => {
+        setPlayers(prev => {
+            const updated = { ...prev };
+            delete updated[playerId];
+            return updated;
+        });
+    });
 
     socket.on('countdown_start',()=>{
       setGameState("countdown");
@@ -47,8 +65,8 @@ function GameDashboard(){
       }, 1000);
     })
 
-    socket.on('game_started',(gameData)=>{
-      setTargetText(gameData.quote);
+    socket.on('game_started',({quote})=>{
+      setTargetText(quote);
       setGameState("playing");
       setStartTime(Date.now());
     });
@@ -61,11 +79,20 @@ function GameDashboard(){
           wpm: wpm
         }
       }))
-    })
-
-    socket.on('opponent_left',()=>{
-      setOpponentLeft(true);
     });
+
+    socket.on('player_reset',({playerId, playerData})=>{
+      setPlayers(prev => ({
+        ...prev,
+        [playerId]: playerData
+      }));
+    });
+
+    socket.on('race_ended', ({finalPlayers}) => {
+      setPlayers(finalPlayers);
+      setGameState("results");
+    });
+
 
     return()=>{
       socket.off('connect');
@@ -73,28 +100,30 @@ function GameDashboard(){
       socket.off('countdown_start');
       socket.off('game_started');
       socket.off('opponent_finished');
+      socket.off('player_joined_room');
+      socket.off('player_ready_status');
       socket.off('opponent_left');
+      socket.off('race_ended');
     }
   },[]);
 
   const handlePlay = () => {
-    socket.emit('find_match');
+    socket.emit('find_match',);
     setGameState("searching");
   }
   
 
   const handlePlayAgain = () => {
-    setMyWPM(0);
-    setOpponentWPM(0);
     setTargetText("");
-    setOpponentLeft(false);
     setGameState("lobby");
+    if(socket){
+      socket.emit('play_again', {roomId});
+    }
   };
 
-  const handleExit = () =>{
+  const handleExit = () => {
     setroomId("");
     setMyWPM(0);
-    setOpponentWPM(0);
     setTargetText("");
     setGameState("Home");
     socket.emit('leave_room', {roomId});
@@ -121,8 +150,9 @@ function GameDashboard(){
       {gameState === "lobby" && (
         <Lobby 
           roomId={roomId} 
-          handleExit={handleExit} 
-          opponentLeft={opponentLeft}
+          handleExit={handleExit}
+          players={players}
+          setPlayers={setPlayers}
         />
       )}
 
@@ -142,17 +172,16 @@ function GameDashboard(){
           gameState={gameState}
           startTime={startTime}
           setMyWPM={setMyWPM}
-          setGameState={setGameState}
+          players={players}
         />
       )}
 
       {gameState === "results" && (
         <Results 
           myWPM={myWPM}
-          opponentWPM={opponentWPM}
+          players={players}
           handleExit={handleExit}
           handlePlayAgain={handlePlayAgain}
-          opponentLeft={opponentLeft}
         />
       )}
 
