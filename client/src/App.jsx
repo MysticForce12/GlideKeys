@@ -10,6 +10,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         
+        {/* Temporary route to open GameDashboard for site visit */}
+        <Route path="/" element={<GameDashboard />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Login />} />
         <Route path="/play" element={
