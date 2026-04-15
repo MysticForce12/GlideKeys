@@ -237,10 +237,6 @@ io.on('connection', (socket)=>{
 
         if(activeRooms[roomId] && activeRooms[roomId].players && activeRooms[roomId].players[socket.id]){
 
-          socket.to(roomId).emit('opponent_left', { 
-            playerId: socket.id 
-          });
-
           socket.leave(roomId);
           delete activeRooms[roomId].players[socket.id];
           socket.roomId = null;

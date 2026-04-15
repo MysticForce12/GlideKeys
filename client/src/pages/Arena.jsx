@@ -37,7 +37,7 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, players }) 
     const gaugeOffset = gaugeCircumference - (gaugeFillPercent / 100) * gaugeCircumference;
 
     //combo quake
-    const shakeIntensity = combo > 20 ? Math.min((combo - 20) / 80, 1) : 0; 
+    const shakeIntensity = combo > 2 ? Math.min((combo - 2) / 80, 1) : 0; 
     const shakeX = shakeIntensity > 0 ? (Math.random() - 0.5) * 8 * shakeIntensity : 0;
     const shakeY = shakeIntensity > 0 ? (Math.random() - 0.5) * 8 * shakeIntensity : 0;
 
@@ -202,8 +202,7 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, players }) 
                     >
                         <div className="flex flex-col justify-center h-full">
                             
-                            <div 
-                                className="relative z-20 pointer-events-none break-words text-2xl transition-transform duration-300 ease-out"
+                            <div className="relative z-20 pointer-events-none break-words text-2xl transition-transform duration-300 ease-out"
                                 style={{ 
                                     lineHeight: '40px', 
                                     transform: `translateY(-${scrollOffset}px)` 
@@ -222,7 +221,7 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, players }) 
                                         isCurrentChar = true; 
                                     }
 
-                                    return (
+                                    return(
                                         <span 
                                             key={index} 
                                             ref={isCurrentChar ? activeCharRef : null} 
