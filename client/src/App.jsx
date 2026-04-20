@@ -23,9 +23,9 @@ function App() {
         }/>
         
         <Route path='/profile' element={
-          <ProtectedRoute>
             <Profile />
-          </ProtectedRoute>
+          // <ProtectedRoute>
+          // </ProtectedRoute>
         } />
 
       </Routes>

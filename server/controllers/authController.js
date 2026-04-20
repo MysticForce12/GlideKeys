@@ -3,41 +3,53 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 
-const registerUser = async(req, res)=>{
-    try{
-        const {username, password} = req.body;
-        if(!username || !password){
-            return res.status(400).json({message : "Username and passwords are required"});
+const registerUser = async (req, res) => {
+    try {
+        const { name, username, password } = req.body;
+
+        if (!name || !username || !password) {
+            return res.status(400).json({ 
+                message: "Please provide a name, username, and password." 
+            });
         }
-        const existingUser = await User.findOne({
-            username
-        });
-        if(existingUser){
-            return res.status(400).json({message: "Username is already taken"});
+
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(409).json({ 
+                message: "username is already taken." 
+            });
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new User({
-            username: username.toLowerCase(),
+            name,
+            username,
             password: hashedPassword
         });
 
         await newUser.save();
 
+        const token = jwt.sign(
+            { id: newUser._id, username: newUser.username },
+            process.env.JWT_SECRET, 
+            { expiresIn: '7d' }
+        );
+
+
         res.status(201).json({
-            message: "User registered successfully",
-            user: { _id: newUser._id, username: newUser.username }
+            message: "Registration successful",
+            token
         });
 
-
-    } catch(err){
-        console.error("Registration error : ",err);
-        res.status(500).json({message: 'Server error'});
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ 
+            message: "Internal Server Error. Could not create pilot license." 
+        });
     }
 }
-
 
 const loginUser = async(req, res)=>{
     try{
