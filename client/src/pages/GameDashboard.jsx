@@ -11,7 +11,8 @@ function GameDashboard(){
   const [gameState, setGameState] = useState("Home");
   const [countdown, setCountdown] = useState(5);
   const [startTime, setStartTime] = useState(null);
-  const [players, setPlayers] = useState({});
+  const [livePlayers, setLivePlayers] = useState({});
+  const [finalResults, setFinalResults] = useState(null);
 
   const [myWPM, setMyWPM] = useState(0);
   const [roomId, setroomId] = useState("");
@@ -27,27 +28,27 @@ function GameDashboard(){
 
     socket.on('match_found',({roomId, playersInRoom})=>{
       setroomId(roomId);
-      setPlayers(playersInRoom);
+      setLivePlayers(playersInRoom);
       setGameState("lobby");
       console.log('Match found in room: ', roomId);
     });
 
     socket.on('player_joined_room', ({ playerId, playerData }) => {
-        setPlayers(prev => ({
+        setLivePlayers(prev => ({
             ...prev,
             [playerId]: playerData
         }));
     });
 
     socket.on('player_ready_status', ({ playerId, isReady }) => {
-        setPlayers(prev => ({
+        setLivePlayers(prev => ({
             ...prev,
             [playerId]: { ...prev[playerId], isReady: isReady }
         }));
     });
 
     socket.on('opponent_left', ({ playerId }) => {
-        setPlayers(prev => {
+        setLivePlayers(prev => {
             const updated = { ...prev };
             delete updated[playerId];
             return updated;
@@ -72,7 +73,7 @@ function GameDashboard(){
     });
 
     socket.on('opponent_finished',({playerId, wpm})=>{
-      setPlayers(prevPlayers =>({
+      setLivePlayers(prevPlayers =>({
         ...prevPlayers,
         [playerId]:{
           ...prevPlayers[playerId],
@@ -82,14 +83,14 @@ function GameDashboard(){
     });
 
     socket.on('player_reset',({playerId, playerData})=>{
-      setPlayers(prev => ({
+      setLivePlayers(prev => ({
         ...prev,
         [playerId]: playerData
       }));
     });
 
     socket.on('race_ended', ({finalPlayers}) => {
-      setPlayers(finalPlayers);
+      setFinalResults(finalPlayers);
       setGameState("results");
     });
 
@@ -151,8 +152,8 @@ function GameDashboard(){
         <Lobby 
           roomId={roomId} 
           handleExit={handleExit}
-          players={players}
-          setPlayers={setPlayers}
+          livePlayers={livePlayers}
+          setLivePlayers={setLivePlayers}
         />
       )}
 
@@ -172,14 +173,14 @@ function GameDashboard(){
           gameState={gameState}
           startTime={startTime}
           setMyWPM={setMyWPM}
-          players={players}
+          livePlayers={livePlayers}
         />
       )}
 
       {gameState === "results" && (
         <Results 
           myWPM={myWPM}
-          players={players}
+          finalPlayers={finalResults}
           handleExit={handleExit}
           handlePlayAgain={handlePlayAgain}
         />

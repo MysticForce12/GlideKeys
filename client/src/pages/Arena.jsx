@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useTypingEngine } from '../hooks/TypingEngine';
 import { useSocket } from '../context/SocketContext';
 
-const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, players }) => {
+const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, livePlayers }) => {
 
     const socket = useSocket();
     const inputRef = useRef(null);
@@ -26,10 +26,10 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, players }) 
     }, [userInput]);
 
     {/*Lane logic */}
-    const totalPlayers = players ? Object.keys(players).length : 1;
+    const totalPlayers = livePlayers ? Object.keys(livePlayers).length : 1;
     const numLanes = Math.max(1, Math.min(totalPlayers, 5)); 
     const myLaneIndex = Math.floor((numLanes - 1) / 2);
-    const oppIds = Object.keys(players || {}).filter(id => id !== socket?.id);
+    const oppIds = Object.keys(livePlayers || {}).filter(id => id !== socket?.id);
 
     //speedometer 
     const gaugeCircumference = 339.29;

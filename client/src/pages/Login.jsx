@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const Login = () => {
+
     const [isLogin, setIsLogin] = useState(true);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -26,16 +27,15 @@ const Login = () => {
 
         const payload = isLogin ? { username, password } : { name, username, password };
 
-        try {
+        try{
             const response = await api.post(endpoint, payload);
             const { token } = response.data;
             localStorage.setItem('token', token);
             
-            console.log("Authorization successful. Welcome Pilot.");
+            console.log("Authorization successful");
             navigate('/play');
 
-        } 
-        catch (err) {
+        } catch (err) {
             const errorMessage = err.response?.data?.message || "Authentication failed. Check your credentials.";
             setError(errorMessage);
         } finally {
@@ -52,7 +52,7 @@ const Login = () => {
 
                 <div className="text-center mb-8 mt-2">
                     <h2 className="text-2xl font-bold text-white tracking-wide">
-                        {isLogin ? "Pilot Login" : "New License"}
+                        {isLogin ? "Login" : "Signup"}
                     </h2>
                 </div>
 
@@ -82,7 +82,7 @@ const Login = () => {
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Username</label>
                         <input 
                             type="text" 
-                            placeholder="SpeedRacer42" 
+                            placeholder="xyz@gmail.com" 
                             className="w-full bg-[#07090d] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder:text-gray-700 focus:border-blue-500 outline-none transition-colors"
                             value={username} 
                             onChange={(e) => setUsername(e.target.value)}
@@ -91,7 +91,7 @@ const Login = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Access Key</label>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
                         <input 
                             type="password" 
                             placeholder="••••••••" 

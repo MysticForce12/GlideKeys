@@ -109,6 +109,7 @@ io.on('connection', (socket)=>{
         console.log(`Player ${socket.id} joined existing room: ${roomToJoin}`);
       }
       else{
+        
         const newRoomId = `room_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         
         socket.join(newRoomId);

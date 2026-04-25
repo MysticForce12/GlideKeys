@@ -1,11 +1,11 @@
 import Confetti from 'react-confetti';
 import { useSocket } from '../context/SocketContext';
 
-const Results = ({ myWPM, players, handleExit, handlePlayAgain }) => {
+const Results = ({ myWPM, finalPlayers, handleExit, handlePlayAgain }) => {
     
     const socket = useSocket();
 
-    const leaderboard = Object.entries(players || {}).map(([id, data]) => {
+    const leaderboard = Object.entries(finalPlayers || {}).map(([id, data]) => {
         const finalWPM = id === socket.id && myWPM > 0 ? myWPM : data.wpm;
         
         return {

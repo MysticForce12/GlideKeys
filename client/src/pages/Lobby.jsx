@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 
-const Lobby = ({ roomId, handleExit, players }) => {
+const Lobby = ({ roomId, handleExit, livePlayers }) => {
     const socket = useSocket();
     const [notifications, setNotifications] = useState([]);
 
@@ -32,7 +32,7 @@ const Lobby = ({ roomId, handleExit, players }) => {
         };
     }, [socket]);
 
-    const amIReady = players && players[socket.id] ? players[socket.id].isReady : false;
+    const amIReady = livePlayers && livePlayers[socket.id] ? livePlayers[socket.id].isReady : false;
 
     const handleReadyToggle = () => {
         socket.emit(amIReady ? 'player_not_ready' : 'player_ready', roomId);
@@ -57,10 +57,10 @@ const Lobby = ({ roomId, handleExit, players }) => {
 
             <div className="w-full mb-8 flex flex-col gap-3">
                 <div className="text-xs font-semibold text-gray-500 uppercase text-left px-1">
-                    Players ({Object.keys(players || {}).length} / 5)
+                    livePlayers ({Object.keys(livePlayers || {}).length} / 5)
                 </div>
                 
-                {Object.entries(players || {}).map(([id, playerData]) => (
+                {Object.entries(livePlayers || {}).map(([id, playerData]) => (
                     <div key={id} className={`flex items-center justify-between p-3 rounded-xl border ${id === socket.id ? 'border-blue-500 bg-blue-500/10' : 'border-gray-800 bg-black/20'}`}>
                         <div className="flex items-center gap-3">
                             <div className={`w-3 h-3 rounded-full ${playerData.isReady ? 'bg-green-400' : 'bg-gray-600'}`}></div>

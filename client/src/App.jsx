@@ -11,21 +11,24 @@ function App() {
       <Routes>
         
         {/* Temporary route to open GameDashboard for site visit */}
-        <Route path="/" element={<GameDashboard />} />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <GameDashboard />
+          </ProtectedRoute>
+        }/> 
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Login />} />
         <Route path="/play" element={
-          // <ProtectedRoute>
-          //   <GameDashboard />
-          // </ProtectedRoute>
+          <ProtectedRoute>
             <GameDashboard />
+          </ProtectedRoute>
         }/>
         
         <Route path='/profile' element={
+          <ProtectedRoute>
             <Profile />
-          // <ProtectedRoute>
-          // </ProtectedRoute>
+          </ProtectedRoute>
         } />
 
       </Routes>
