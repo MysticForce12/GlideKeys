@@ -23,11 +23,7 @@ const ProtectedRoute = ({ children }) => {
                     return setIsValid(false);
                 }
 
-                await axios.get('http://localhost:3000/api/users/profile', {
-                    headers:{
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+                await api.get('/users/profile');
 
                 setIsValid(true);
 

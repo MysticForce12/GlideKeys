@@ -9,7 +9,7 @@ export const useSocket = ()=>{
 
 export const SocketProvider = ({children})=>{
     const socket = useMemo(()=>{
-        const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+        const SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         return io(SERVER_URL,{
             withCredentials: true
         });
