@@ -12,7 +12,13 @@ const AuthPage = ({ initialMode }) => {
     const [loading, setLoading] = useState(false);
     
     useEffect(() => {
-        setIsLogin(initialMode === 'login');
+
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            setIsLogin(initialMode === 'login');
+        }
+        
     }, [initialMode]);
 
     const navigate = useNavigate();
