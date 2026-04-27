@@ -35,11 +35,6 @@ const io = new Server(server, {
   }
 });
 
-app.get('/ping', (req, res) => {
-  res.status(200).send('Server is awake!');
-});
-
-
 const PORT = process.env.PORT || 3000;
 
 const targetQuotes = [

@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
-const Login = () => {
+const AuthPage = ({ initialMode }) => {
 
-    const [isLogin, setIsLogin] = useState(true);
+    const [isLogin, setIsLogin] = useState(initialMode === 'login');
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     
+    useEffect(() => {
+        setIsLogin(initialMode === 'login');
+    }, [initialMode]);
+
     const navigate = useNavigate();
 
     const toggle = () => {
@@ -128,4 +132,4 @@ const Login = () => {
     );
 };
 
-export default Login;
+export default AuthPage;

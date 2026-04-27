@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Login from './pages/Login';
+import AuthPage from './pages/AuthPage';
 import GameDashboard from './pages/GameDashboard';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
+
 
 function App() {
   
@@ -10,15 +12,25 @@ function App() {
     <BrowserRouter>
       <Routes>
         
-        {/* Temporary route to open GameDashboard for site visit */}
         <Route path="/" element={
           <ProtectedRoute>
             <GameDashboard />
           </ProtectedRoute>
         }/> 
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Login />} />
+        <Route path="/register" element={
+          <PublicRoute> 
+            <AuthPage initialMode="register" /> 
+          </PublicRoute>
+          
+        } />  
+        
+        <Route path="/login" element={
+          <PublicRoute>
+            <AuthPage initialMode="login" />
+          </PublicRoute>
+        }/>            
+        
         <Route path="/play" element={
           <ProtectedRoute>
             <GameDashboard />

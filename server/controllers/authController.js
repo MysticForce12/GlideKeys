@@ -13,7 +13,7 @@ const registerUser = async (req, res) => {
             });
         }
 
-        const existingUser = await User.findOne({ username });
+        const existingUser = await User.findOne({ username: username.trim().toLowerCase() });
         if (existingUser) {
             return res.status(409).json({ 
                 message: "username is already taken." 
@@ -58,7 +58,7 @@ const loginUser = async(req, res)=>{
             return res.status(400).json({message : "Username and passwords are required"});
         }
         
-        const user = await User.findOne({ username: username.toLowerCase() });
+        const user = await User.findOne({ username: username.trim().toLowerCase() });
         if (!user) {
             return res.status(400).json({ message: "User not found." });
         }
