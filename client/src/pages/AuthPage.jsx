@@ -10,22 +10,26 @@ const AuthPage = ({ initialMode }) => {
     const [name, setName] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
     
     useEffect(() => {
 
         const token = localStorage.getItem('token');
         
-        if (!token) {
-            setIsLogin(initialMode === 'login');
+        if (token) {
+            navigate('/play', { replace: true });
+            return;
         }
-        
-    }, [initialMode]);
+        setIsLogin(initialMode === 'login');
+    }, [initialMode, navigate]);
 
-    const navigate = useNavigate();
 
     const toggle = () => {
-        setIsLogin(!isLogin);
+        setIsLogin(prev => !prev); 
         setError("");
+        setName(""); 
+        setUsername("");
+        setPassword("");
     }
 
     const handleSubmit = async (e) =>{
@@ -41,6 +45,7 @@ const AuthPage = ({ initialMode }) => {
             const response = await api.post(endpoint, payload);
             const { token } = response.data;
             localStorage.setItem('token', token);
+            console.log("Set the token in the local storage", token);
             
             console.log("Authorization successful");
             navigate('/play');
