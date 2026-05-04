@@ -1,13 +1,9 @@
-const Header = ({gameState})=>{
-    return(
+const Header = ({ gameState }) => {
+    return (
         <div className="w-full max-w-5xl mx-auto flex justify-between items-center mb-12">
             <div className="flex items-center gap-3 cursor-default group">
-                <div className="bg-gradient-to-br from-[#38bdf8] to-[#6366f1] p-2.5 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.4)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 ease-out">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                    <path d="M4 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"></path>
-                    <path d="M6 11h.01"></path><path d="M10 11h.01"></path><path d="M14 11h.01"></path><path d="M18 11h.01"></path>
-                    <path d="M8 15h8"></path>
-                    </svg>
+                <div className="bg-gradient-to-br from-[#38bdf8] to-[#6366f1] p-1.5 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.4)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 ease-out">
+                    <img src="/GlideKeyslogo.png" alt="Logo" width="60" height="50" className="rounded-xl" />
                 </div>
 
                 <div className="flex flex-col">
