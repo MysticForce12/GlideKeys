@@ -9,9 +9,11 @@ export const useSocket = ()=>{
 
 export const SocketProvider = ({children})=>{
     const socket = useMemo(()=>{
-        const SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const RAW_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const SERVER_URL = RAW_URL.replace(/\/api$/, '');
         return io(SERVER_URL,{
-            withCredentials: true
+            withCredentials: true,
+            transports: ['polling', 'websocket']
         });
     },[]);
 

@@ -45,9 +45,6 @@ const AuthPage = ({ initialMode }) => {
             const response = await api.post(endpoint, payload);
             const { token } = response.data;
             localStorage.setItem('token', token);
-            console.log("Set the token in the local storage", token);
-            
-            console.log("Authorization successful");
             navigate('/play');
 
         } catch (err) {
