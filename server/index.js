@@ -14,7 +14,7 @@ connectDB();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL
+  process.env.VITE_API_URL
 ];
 
 app.use(cors({
