@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    avatarGradient: {
+        type: String,
+        default: 'purple-blue'
+    },
     friends: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

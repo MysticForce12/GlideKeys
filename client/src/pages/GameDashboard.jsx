@@ -5,10 +5,13 @@ import Home from './Home'
 import Lobby from './Lobby';
 import Arena from './Arena';
 import Results from './Results';
+import api from '../utils/api';
 
 function GameDashboard(){
 
   const [gameState, setGameState] = useState("Home");
+  const [username, setUsername] = useState(() => localStorage.getItem('gk_username') || '');
+  const [name,     setName]     = useState(() => localStorage.getItem('gk_name') || '');
   const [countdown, setCountdown] = useState(5);
   const [startTime, setStartTime] = useState(null);
   const [livePlayers, setLivePlayers] = useState({});
@@ -19,6 +22,19 @@ function GameDashboard(){
   const [targetText, setTargetText] = useState("");
 
   const socket = useSocket();
+
+  useEffect(() => {
+    api.get('/users/profile')
+      .then(res => {
+        const uname = res.data.username || '';
+        const dname = res.data.name || '';
+        setUsername(uname);
+        setName(dname);
+        localStorage.setItem('gk_username', uname);
+        localStorage.setItem('gk_name', dname);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(()=>{
 
@@ -134,7 +150,7 @@ function GameDashboard(){
 
     <div className="min-h-screen bg-[#0d1117] text-white font-sans p-8">
 
-      <Header gameState={gameState}/>
+      <Header gameState={gameState} username={username} name={name}/>
 
       {gameState === "Home" && (
         <Home handlePlay={handlePlay}/>
