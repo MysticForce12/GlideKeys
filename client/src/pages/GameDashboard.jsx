@@ -125,7 +125,8 @@ function GameDashboard(){
   },[]);
 
   const handlePlay = () => {
-    socket.emit('find_match',);
+    const dbUserId = localStorage.getItem('gk_userId'); 
+    socket.emit('find_match', { userId: dbUserId });
     setGameState("searching");
   }
   

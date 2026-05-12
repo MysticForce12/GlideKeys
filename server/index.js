@@ -11,6 +11,7 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 connectDB();
 
+const User = require('./models/User');
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -49,14 +50,55 @@ let waitingPlayer = null;
 const activeRooms = {};
 const roomCapacity = 5;
 
-const checkRaceCompletion = (roomId) => {
+const checkRaceCompletion = async (roomId) => {
+  
   const room = activeRooms[roomId];
   if(!room || room.status !== "playing") return;
+  
   const currentPlayers = Object.values(room.players);
+  
+  // if everyone finished
   if(currentPlayers.length && currentPlayers.every(player => player.isFinished)) {
     room.status = "finished";
-    for(let playerId in room.players){
-      room.players[playerId].isReady = false;
+    
+    try {
+        let maxWpmInRoom = 0;
+        for(const p of currentPlayers) {
+            if(p.wpm > maxWpmInRoom) maxWpmInRoom = p.wpm;
+        }
+        //update the stats of each player
+        for(let playerId in room.players) {
+            const playerStats = room.players[playerId];
+            room.players[playerId].isReady = false; 
+
+            if(playerStats.dbUserId) {
+                const isWinner = (playerStats.wpm === maxWpmInRoom) && (currentPlayers.length > 1);
+                const user = await User.findById(playerStats.dbUserId);
+                
+                if(user) {
+
+                    const oldTotal = user.totalMatches || 0;
+                    const oldAvg = user.avgWPM || 0;
+                    const newTotal = oldTotal + 1;
+   
+                    const newAvgWPM = Math.round(((oldAvg * oldTotal) + playerStats.wpm) / newTotal);
+                    const newMaxWPM = Math.max(user.maxWPM || 0, playerStats.wpm);
+                    
+                    const newWins = isWinner ? (user.wins || 0) + 1 : (user.wins || 0);
+
+                    await User.findByIdAndUpdate(playerStats.dbUserId, {
+                        avgWPM: newAvgWPM,
+                        maxWPM: newMaxWPM,
+                        totalMatches: newTotal,
+                        wins: newWins
+                    });
+                    
+                    console.log(`Updated DB stats for user: ${user.username}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Critical error updating player stats:", error);
     }
     io.to(roomId).emit('race_ended',{
       finalPlayers : room.players
@@ -68,7 +110,10 @@ io.on('connection', (socket)=>{
   
   console.log('A user connected with id : ',socket.id);
   
-  socket.on('find_match',()=>{
+  socket.on('find_match',(data)=>{
+
+    const userId = data?.userId || null;
+
     let roomToJoin = null;
     
       for(const roomId in activeRooms){

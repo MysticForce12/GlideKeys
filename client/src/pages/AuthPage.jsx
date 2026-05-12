@@ -45,6 +45,7 @@ const AuthPage = ({ initialMode }) => {
             const response = await api.post(endpoint, payload);
             const { token } = response.data;
             localStorage.setItem('token', token);
+            localStorage.setItem('gk_userId', response.data.user._id);
             localStorage.setItem('gk_username', username.trim().toLowerCase());
             if (!isLogin) localStorage.setItem('gk_name', name.trim().toLowerCase());
             navigate('/play');
