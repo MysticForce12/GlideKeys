@@ -11,9 +11,11 @@ export const SocketProvider = ({children})=>{
     const socket = useMemo(()=>{
         const RAW_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const SERVER_URL = RAW_URL.replace(/\/api$/, '');
+        const token = localStorage.getItem('token');
         return io(SERVER_URL,{
             withCredentials: true,
-            transports: ['polling', 'websocket']
+            transports: ['polling', 'websocket'],
+            auth: { token }
         });
     },[]);
 

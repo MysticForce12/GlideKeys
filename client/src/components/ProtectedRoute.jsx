@@ -3,7 +3,6 @@ import { Navigate } from "react-router-dom";
 import api from "../utils/api";
 import { jwtDecode } from "jwt-decode";
 
-/* ── Themed full-screen loading screen ── */
 const LoadingScreen = () => (
     <div
         style={{
@@ -17,7 +16,7 @@ const LoadingScreen = () => (
             fontFamily: 'sans-serif',
         }}
     >
-        {/* Logo + title */}
+        {/*logo and title */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
             <div
                 style={{
@@ -51,7 +50,6 @@ const LoadingScreen = () => (
             </div>
         </div>
 
-        {/* Spinner */}
         <div
             style={{
                 width: '48px',
@@ -63,7 +61,6 @@ const LoadingScreen = () => (
             }}
         />
 
-        {/* Status text */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
             <p
                 style={{
@@ -93,7 +90,6 @@ const LoadingScreen = () => (
             </div>
         </div>
 
-        {/* Keyframe styles injected inline */}
         <style>{`
             @keyframes glide-spin {
                 to { transform: rotate(360deg); }

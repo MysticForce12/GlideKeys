@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const jwt = require('jsonwebtoken');
 const app = express();
 const { Server } = require("socket.io");
 const cors = require('cors');
@@ -53,12 +54,24 @@ const roomCapacity = 5;
 const checkRaceCompletion = async (roomId) => {
   
   const room = activeRooms[roomId];
-  if(!room || room.status !== "playing") return;
+  console.log(`[checkRaceCompletion] roomId=${roomId}, status=${room?.status}`);
+  if(!room || room.status !== "playing") {
+    console.log(`[checkRaceCompletion] EARLY RETURN — room missing or not playing`);
+    return;
+  }
   
   const currentPlayers = Object.values(room.players);
+  console.log(`[checkRaceCompletion] Players:`, currentPlayers.map(p => ({
+    dbUserId: p.dbUserId,
+    isFinished: p.isFinished,
+    wpm: p.wpm
+  })));
   
+  const allFinished = currentPlayers.length && currentPlayers.every(player => player.isFinished);
+  console.log(`[checkRaceCompletion] allFinished=${allFinished}, count=${currentPlayers.length}`);
+
   // if everyone finished
-  if(currentPlayers.length && currentPlayers.every(player => player.isFinished)) {
+  if(allFinished) {
     room.status = "finished";
     
     try {
@@ -69,11 +82,13 @@ const checkRaceCompletion = async (roomId) => {
         //update the stats of each player
         for(let playerId in room.players) {
             const playerStats = room.players[playerId];
-            room.players[playerId].isReady = false; 
+            room.players[playerId].isReady = false;
+            console.log(`[DB Update] playerId=${playerId}, dbUserId=${playerStats.dbUserId}, wpm=${playerStats.wpm}`);
 
             if(playerStats.dbUserId) {
                 const isWinner = (playerStats.wpm === maxWpmInRoom) && (currentPlayers.length > 1);
                 const user = await User.findById(playerStats.dbUserId);
+                console.log(`[DB Update] found user=${user?.username}, isWinner=${isWinner}`);
                 
                 if(user) {
 
@@ -93,12 +108,14 @@ const checkRaceCompletion = async (roomId) => {
                         wins: newWins
                     });
                     
-                    console.log(`Updated DB stats for user: ${user.username}`);
+                    console.log(`[DB Update] ✅ Saved — user: ${user.username}, totalMatches: ${newTotal}, avgWPM: ${newAvgWPM}, wins: ${newWins}`);
                 }
+            } else {
+                console.log(`[DB Update] ⚠️  Skipped — no dbUserId for playerId=${playerId}`);
             }
         }
     } catch (error) {
-        console.error("Critical error updating player stats:", error);
+        console.error("[DB Update] ❌ Critical error updating player stats:", error);
     }
     io.to(roomId).emit('race_ended',{
       finalPlayers : room.players
@@ -107,12 +124,25 @@ const checkRaceCompletion = async (roomId) => {
 };
 
 io.on('connection', (socket)=>{
-  
-  console.log('A user connected with id : ',socket.id);
-  
+
+  // Decode userId from JWT token sent during socket handshake
+  try {
+    const token = socket.handshake.auth?.token;
+    if(token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.dbUserId = decoded.id;
+      console.log(`A user connected: socket=${socket.id} dbUserId=${socket.dbUserId}`);
+    } else {
+      console.log(`A user connected (no token): socket=${socket.id}`);
+    }
+  } catch(e) {
+    console.log(`A user connected (invalid token): socket=${socket.id}`);
+  }
+
   socket.on('find_match',(data)=>{
 
-    const userId = data?.userId || null;
+    const userId = socket.dbUserId || null;
+    console.log(`[find_match] socket=${socket.id} userId=${userId}`);
 
     let roomToJoin = null;
     
@@ -130,7 +160,9 @@ io.on('connection', (socket)=>{
         socket.roomId = roomToJoin;
         
         activeRooms[roomToJoin].players[socket.id] = {
+          dbUserId: userId,
           isReady : false,
+          isFinished: false,
           wpm : 0,
           progress : 0,
           accuracy : 0
@@ -161,6 +193,8 @@ io.on('connection', (socket)=>{
           status: "waiting", 
           players: {
             [socket.id]: { 
+              dbUserId: userId,
+              isFinished: false,
               isReady: false,
               wpm: 0,
               progress: 0,

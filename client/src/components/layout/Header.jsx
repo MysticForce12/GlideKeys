@@ -1,14 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Header = ({ gameState, username, name }) => {
+const Header = ({ gameState, setGameState, username, name }) => {
     const navigate = useNavigate();
     const initial = (name?.[0] || username?.[0] || 'U').toUpperCase();
+
+
+    const goHome = () => {
+        setGameState('Home');
+        navigate('/play');
+    };
 
     return (
         <header className="w-full max-w-6xl mx-auto flex justify-between items-center mb-12 px-4">
 
-            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/play')}>
+            <div className="flex items-center gap-3 cursor-pointer group" onClick={goHome}>
                 <div className="bg-gradient-to-br from-[#38bdf8] to-[#6366f1] p-1.5 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.4)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 ease-out">
                     <img src="/GlideKeyslogo.png" alt="Logo" width="60" height="50" className="rounded-xl" />
                 </div>
@@ -24,14 +30,29 @@ const Header = ({ gameState, username, name }) => {
 
             <nav className="hidden md:flex items-center gap-8 font-medium text-base text-gray-400">
                 <button
-                    onClick={() => navigate('/play')}
-                    className="text-white hover:text-white transition-colors relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-blue-500"
+                    onClick={goHome}
+                    className={`transition-colors relative hover:text-white ${gameState === 'Home' || gameState === 'searching' || gameState === 'lobby' || gameState === 'countdown' || gameState === 'playing' || gameState === 'results' ? "text-white after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-blue-500" : ""}`}
                 >
                     Home
                 </button>
-                <button className="hover:text-white hover:-translate-y-0.5 transition-all">Leaderboard</button>
-                <button className="hover:text-white hover:-translate-y-0.5 transition-all">History</button>
-                <button className="hover:text-white hover:-translate-y-0.5 transition-all">About</button>
+                <button
+                    onClick={() => setGameState('leaderboard')}
+                    className={`transition-all hover:text-white ${gameState === 'leaderboard' ? "text-white relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-amber-500" : "hover:-translate-y-0.5"}`}
+                >
+                    Leaderboard
+                </button>
+                <button
+                    onClick={() => setGameState('history')}
+                    className={`transition-all hover:text-white ${gameState === 'history' ? "text-white relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-teal-500" : "hover:-translate-y-0.5"}`}
+                >
+                    History
+                </button>
+                <button
+                    onClick={() => setGameState('about')}
+                    className={`transition-all hover:text-white ${gameState === 'about' ? "text-white relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-purple-500" : "hover:-translate-y-0.5"}`}
+                >
+                    About
+                </button>
             </nav>
 
 

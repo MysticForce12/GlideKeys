@@ -4,7 +4,7 @@ import api from '../utils/api';
 
 const AuthPage = ({ initialMode }) => {
 
-    const [isLogin, setIsLogin] = useState(initialMode === 'login');
+    const [isLogin, setIsLogin] = useState(initialMode === 'login'); 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
@@ -13,10 +13,8 @@ const AuthPage = ({ initialMode }) => {
     const navigate = useNavigate();
     
     useEffect(() => {
-
         const token = localStorage.getItem('token');
-        
-        if (token) {
+        if(token){
             navigate('/play', { replace: true });
             return;
         }

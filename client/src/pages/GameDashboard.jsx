@@ -5,6 +5,8 @@ import Home from './Home'
 import Lobby from './Lobby';
 import Arena from './Arena';
 import Results from './Results';
+import About from './About';
+import ComingSoon from './ComingSoon';
 import api from '../utils/api';
 
 function GameDashboard(){
@@ -151,7 +153,7 @@ function GameDashboard(){
 
     <div className="min-h-screen bg-[#0d1117] text-white font-sans p-8">
 
-      <Header gameState={gameState} username={username} name={name}/>
+      <Header gameState={gameState} setGameState={setGameState} username={username} name={name}/>
 
       {gameState === "Home" && (
         <Home handlePlay={handlePlay}/>
@@ -201,6 +203,18 @@ function GameDashboard(){
           handleExit={handleExit}
           handlePlayAgain={handlePlayAgain}
         />
+      )}
+
+      {gameState === "about" && (
+        <About onBack={() => setGameState("Home")} />
+      )}
+
+      {gameState === "leaderboard" && (
+        <ComingSoon page="leaderboard" onBack={() => setGameState("Home")} />
+      )}
+
+      {gameState === "history" && (
+        <ComingSoon page="history" onBack={() => setGameState("Home")} />
       )}
 
     </div>

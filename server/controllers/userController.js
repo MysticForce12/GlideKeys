@@ -17,7 +17,7 @@ const getProfileController = async (req, res) => {
 const updateProfileController = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { name, avatarGradient } = req.body;
+        const { name, avatarGradient } = req.body;  
 
         const updateFields = {};
         if (name && name.trim().length >= 3 && name.trim().length <= 20) {

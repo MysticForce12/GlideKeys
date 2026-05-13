@@ -4,17 +4,17 @@ const jwt = require('jsonwebtoken');
 
 
 const registerUser = async (req, res) => {
-    try {
+    try{
         const { name, username, password } = req.body;
 
-        if (!name || !username || !password) {
+        if(!name || !username || !password){
             return res.status(400).json({ 
                 message: "Please provide a name, username, and password." 
             });
         }
 
         const existingUser = await User.findOne({ username: username.trim().toLowerCase() });
-        if (existingUser) {
+        if(existingUser){
             return res.status(409).json({ 
                 message: "username is already taken." 
             });
@@ -49,7 +49,7 @@ const registerUser = async (req, res) => {
             }
         });
 
-    } catch (error) {
+    } catch(error){
         console.error("Registration error:", error);
         res.status(500).json({ 
             message: "Internal Server Error. Could not create pilot license." 
@@ -65,7 +65,7 @@ const loginUser = async(req, res)=>{
         }
         
         const user = await User.findOne({ username: username.trim().toLowerCase() });
-        if (!user) {
+        if(!user){
             return res.status(400).json({ message: "User not found." });
         }
 
