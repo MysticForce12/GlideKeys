@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 
-const Lobby = ({ roomId, handleExit, livePlayers }) => {
+const Lobby = ({ roomId, handleExit, livePlayers, gameMode }) => {
     const socket = useSocket();
     const [notifications, setNotifications] = useState([]);
+
+    const maxPlayers = gameMode === 'solo' ? 1 : gameMode === '1v1' ? 2 : 5;
 
     useEffect(() => {
         
@@ -57,7 +59,7 @@ const Lobby = ({ roomId, handleExit, livePlayers }) => {
 
             <div className="w-full mb-8 flex flex-col gap-3">
                 <div className="text-xs font-semibold text-gray-500 uppercase text-left px-1">
-                    livePlayers ({Object.keys(livePlayers || {}).length} / 5)
+                    Players ({Object.keys(livePlayers || {}).length} / {maxPlayers})
                 </div>
                 
                 {Object.entries(livePlayers || {}).map(([id, playerData]) => (

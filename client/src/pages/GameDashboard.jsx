@@ -22,6 +22,7 @@ function GameDashboard(){
   const [myWPM, setMyWPM] = useState(0);
   const [roomId, setroomId] = useState("");
   const [targetText, setTargetText] = useState("");
+  const [gameMode, setGameMode] = useState('arena');
 
   const socket = useSocket();
 
@@ -44,11 +45,18 @@ function GameDashboard(){
       console.log('connected');
     })
 
-    socket.on('match_found',({roomId, playersInRoom})=>{
+    socket.on('match_found',({roomId, playersInRoom, mode})=>{
       setroomId(roomId);
       setLivePlayers(playersInRoom);
-      setGameState("lobby");
-      console.log('Match found in room: ', roomId);
+      if(mode) setGameMode(mode);
+      // Solo mode skips the lobby — go straight to searching/countdown
+      if(mode === 'solo'){
+        // Don't set to lobby; countdown_start will set the state
+        console.log('Solo match found, waiting for countdown...');
+      } else {
+        setGameState("lobby");
+      }
+      console.log('Match found in room: ', roomId, 'mode:', mode);
     });
 
     socket.on('player_joined_room', ({ playerId, playerData }) => {
@@ -126,18 +134,24 @@ function GameDashboard(){
     }
   },[]);
 
-  const handlePlay = () => {
+  const handlePlay = (mode) => {
     const dbUserId = localStorage.getItem('gk_userId'); 
-    socket.emit('find_match', { userId: dbUserId });
+    setGameMode(mode);
+    socket.emit('find_match', { userId: dbUserId, mode });
     setGameState("searching");
   }
   
 
   const handlePlayAgain = () => {
     setTargetText("");
-    setGameState("lobby");
     if(socket){
       socket.emit('play_again', {roomId});
+    }
+    // For solo mode, don't go to lobby — the server will send countdown_start
+    if(gameMode === 'solo'){
+      setGameState("searching");
+    } else {
+      setGameState("lobby");
     }
   };
 
@@ -145,6 +159,7 @@ function GameDashboard(){
     setroomId("");
     setMyWPM(0);
     setTargetText("");
+    setGameMode('arena');
     setGameState("Home");
     socket.emit('leave_room', {roomId});
   }
@@ -173,6 +188,7 @@ function GameDashboard(){
           handleExit={handleExit}
           livePlayers={livePlayers}
           setLivePlayers={setLivePlayers}
+          gameMode={gameMode}
         />
       )}
 

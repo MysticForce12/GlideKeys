@@ -1,12 +1,13 @@
 const express = require('express');
 const http = require('http');
 const jwt = require('jsonwebtoken');
-const app = express();
 const { Server } = require("socket.io");
 const cors = require('cors');
-const server = http.createServer(app);
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+
+const app = express();
+const server = http.createServer(app);
 
 require('dotenv').config();
 const connectDB = require('./config/db');
@@ -125,7 +126,6 @@ const checkRaceCompletion = async (roomId) => {
 
 io.on('connection', (socket)=>{
 
-  // Decode userId from JWT token sent during socket handshake
   try {
     const token = socket.handshake.auth?.token;
     if(token) {
@@ -142,14 +142,20 @@ io.on('connection', (socket)=>{
   socket.on('find_match',(data)=>{
 
     const userId = socket.dbUserId || null;
-    console.log(`[find_match] socket=${socket.id} userId=${userId}`);
+    const mode = (data && data.mode) ? data.mode : 'arena';
+    console.log(`[find_match] socket=${socket.id} userId=${userId} mode=${mode}`);
+
+    //determine desired capacity based on the mode
+    let desiredCapacity = roomCapacity;
+    if(mode === '1v1') desiredCapacity = 2;
+    if(mode === 'solo') desiredCapacity = 1;
 
     let roomToJoin = null;
     
       for(const roomId in activeRooms){
         const room = activeRooms[roomId];
         const currPlayersCount = Object.keys(room.players).length;
-        if((room.status === "waiting" || room.status === "finished") && currPlayersCount < roomCapacity) {
+        if(room.mode === mode && (room.status === "waiting" || room.status === "finished") && currPlayersCount < desiredCapacity) {
             roomToJoin = roomId;
             break;
         }
@@ -170,7 +176,8 @@ io.on('connection', (socket)=>{
 
         socket.emit('match_found', {
           roomId: roomToJoin, 
-          playersInRoom : activeRooms[roomToJoin].players
+          playersInRoom : activeRooms[roomToJoin].players,
+          mode: mode
         });
         
         io.to(roomToJoin).emit('player_joined_room', { 
@@ -178,7 +185,17 @@ io.on('connection', (socket)=>{
               playerData: activeRooms[roomToJoin].players[socket.id]
         });
 
-        console.log(`Player ${socket.id} joined existing room: ${roomToJoin}`);
+        console.log(`Player ${socket.id} joined existing ${mode} room: ${roomToJoin}`);
+
+        if(mode === 'solo'){
+          const randomQuote = activeRooms[roomToJoin].quote;
+          io.to(roomToJoin).emit('countdown_start');
+          activeRooms[roomToJoin].status = "playing";
+          setTimeout(() => {
+            io.to(roomToJoin).emit('game_started', { quote: randomQuote });
+            console.log(`Solo game started in room: ${roomToJoin}`);
+          }, 5000);
+        }
       }
       else{
         
@@ -188,9 +205,11 @@ io.on('connection', (socket)=>{
         socket.roomId = newRoomId;
         
         const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
+        const roomStatus = mode === 'solo' ? 'playing' : 'waiting';
         activeRooms[newRoomId] = {
           quote: randomQuote,
-          status: "waiting", 
+          status: roomStatus,
+          mode: mode,
           players: {
             [socket.id]: { 
               dbUserId: userId,
@@ -205,9 +224,18 @@ io.on('connection', (socket)=>{
 
         socket.emit('match_found',{
           roomId: newRoomId, 
-          playersInRoom : activeRooms[newRoomId].players
+          playersInRoom : activeRooms[newRoomId].players,
+          mode: mode
         });
-        console.log(`Player ${socket.id} created new room: ${newRoomId}`);
+        console.log(`Player ${socket.id} created new ${mode} room: ${newRoomId}`);
+
+        if(mode === 'solo'){
+          io.to(newRoomId).emit('countdown_start');
+          setTimeout(() => {
+            io.to(newRoomId).emit('game_started', { quote: randomQuote });
+            console.log(`Solo game started in room: ${newRoomId}`);
+          }, 5000);
+        }
       } 
 
     });
@@ -296,16 +324,42 @@ io.on('connection', (socket)=>{
 
     socket.on('play_again', ({roomId}) => {
       
-      if(activeRooms[roomId] && activeRooms[roomId].players){  
-        activeRooms[roomId].status = "waiting";
+      if(activeRooms[roomId] && activeRooms[roomId].players){
+        const roomMode = activeRooms[roomId].mode;
+
+        // Reset this player's stats
         activeRooms[roomId].players[socket.id].isReady = false;
+        activeRooms[roomId].players[socket.id].isFinished = false;
+        activeRooms[roomId].players[socket.id].wpm = 0;
+        activeRooms[roomId].players[socket.id].progress = 0;
+        activeRooms[roomId].players[socket.id].accuracy = 0;
+
+        if(roomMode === 'solo'){
+          // Solo: auto-restart the game immediately
+          const randomQuote = targetQuotes[Math.floor(Math.random() * targetQuotes.length)];
+          activeRooms[roomId].quote = randomQuote;
+          activeRooms[roomId].status = "playing";
+          
+          io.to(roomId).emit('player_reset',{
+            playerId: socket.id,
+            playerData: activeRooms[roomId].players[socket.id]
+          });
+
+          io.to(roomId).emit('countdown_start');
+          setTimeout(() => {
+            io.to(roomId).emit('game_started', { quote: randomQuote });
+            console.log(`Solo game restarted in room: ${roomId}`);
+          }, 5000);
+        } else {
+          // Multiplayer: go back to lobby/waiting
+          activeRooms[roomId].status = "waiting";
+
+          io.to(roomId).emit('player_reset',{
+            playerId: socket.id,
+            playerData: activeRooms[roomId].players[socket.id]
+          });
+        }
       }
-
-      io.to(roomId).emit('player_reset',{
-        playerId: socket.id,
-        playerData: activeRooms[roomId].players[socket.id]
-      });
-
     });
 
     socket.on('leave_room', ({roomId})=>{
