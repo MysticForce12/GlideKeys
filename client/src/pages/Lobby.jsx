@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 
+const GRADIENTS = [
+    { id: 'purple-blue', from: '#7c3aed', to: '#2563eb' },
+    { id: 'pink-orange', from: '#ec4899', to: '#f97316' },
+    { id: 'teal-green', from: '#14b8a6', to: '#22c55e' },
+    { id: 'red-pink', from: '#ef4444', to: '#ec4899' },
+    { id: 'yellow-orange', from: '#eab308', to: '#f97316' },
+    { id: 'cyan-blue', from: '#06b6d4', to: '#3b82f6' },
+];
+
+const getGradientStyle = (gradientId) => {
+    const grad = GRADIENTS.find(g => g.id === gradientId) || GRADIENTS[0];
+    return {
+        background: `linear-gradient(135deg, ${grad.from}, ${grad.to})`,
+        boxShadow: `0 0 10px ${grad.from}44`
+    };
+};
+
 const Lobby = ({ roomId, handleExit, livePlayers, gameMode }) => {
     const socket = useSocket();
     const [notifications, setNotifications] = useState([]);
@@ -11,16 +28,17 @@ const Lobby = ({ roomId, handleExit, livePlayers, gameMode }) => {
         
         if (!socket) return;
 
-        const handlePlayerJoined = ({ playerId }) => {
+        const handlePlayerJoined = ({ playerId, playerData }) => {
             const id = Date.now();
-            const playername = `Player_${playerId.substring(0, 4)}`;
+            const playername = playerData?.name || 'A player';
             setNotifications(prev => [...prev, { id, text: `${playername} joined!` }]);
             setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 3000);
         };
 
         const handleOpponentLeft = ({ playerId }) => {
             const id = Date.now();
-            const playername = `Player_${playerId.substring(0, 4)}`;
+            const playerInLobby = livePlayers?.[playerId];
+            const playername = playerInLobby?.name || 'A player';
             setNotifications(prev => [...prev, { id, text: `${playername} left.` }]);
             setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 3000);
         };
@@ -62,19 +80,28 @@ const Lobby = ({ roomId, handleExit, livePlayers, gameMode }) => {
                     Players ({Object.keys(livePlayers || {}).length} / {maxPlayers})
                 </div>
                 
-                {Object.entries(livePlayers || {}).map(([id, playerData]) => (
-                    <div key={id} className={`flex items-center justify-between p-3 rounded-xl border ${id === socket.id ? 'border-blue-500 bg-blue-500/10' : 'border-gray-800 bg-black/20'}`}>
-                        <div className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${playerData.isReady ? 'bg-green-400' : 'bg-gray-600'}`}></div>
-                            <span className="text-sm text-gray-300">
-                                {id === socket.id ? `Player_${id.substring(0, 4)} (you)` : `Player_${id.substring(0, 4)}`}
-                            </span>
-                        </div>
+                {Object.entries(livePlayers || {}).map(([id, playerData]) => {
+                    const initial = (playerData.name || '?').charAt(0).toUpperCase();
+                    
+                    return (
+                        <div key={id} className={`flex items-center justify-between p-3 rounded-xl border ${id === socket.id ? 'border-blue-500 bg-blue-500/10' : 'border-gray-800 bg-black/20'}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-3 h-3 rounded-full ${playerData.isReady ? 'bg-green-400' : 'bg-gray-600'}`}></div>
+                                <div 
+                                    className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-[10px] uppercase"
+                                    style={getGradientStyle(playerData.avatarGradient)}
+                                >
+                                    {initial}
+                                </div>
+                                <span className="text-sm text-gray-300">
+                                    {playerData.name ? `${playerData.name}${id === socket.id ? ' (you)' : ''}` : (id === socket.id ? 'You' : 'Guest')}
+                                </span>
+                            </div>
                         <span className={`text-[10px] font-bold ${playerData.isReady ? 'text-green-400' : 'text-gray-500'}`}>
                             {playerData.isReady ? "READY" : "WAITING"}
                         </span>
                     </div>
-                ))}
+                )})}
             </div>
 
             <div className="flex gap-4 w-full">

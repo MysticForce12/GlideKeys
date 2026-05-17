@@ -2,6 +2,20 @@ import { useRef, useEffect, useState } from 'react';
 import { useTypingEngine } from '../hooks/TypingEngine';
 import { useSocket } from '../context/SocketContext';
 
+const GRADIENTS = [
+    { id: 'purple-blue', from: '#7c3aed', to: '#2563eb' },
+    { id: 'pink-orange', from: '#ec4899', to: '#f97316' },
+    { id: 'teal-green', from: '#14b8a6', to: '#22c55e' },
+    { id: 'red-pink', from: '#ef4444', to: '#ec4899' },
+    { id: 'yellow-orange', from: '#eab308', to: '#f97316' },
+    { id: 'cyan-blue', from: '#06b6d4', to: '#3b82f6' },
+];
+
+const getGradientStyle = (gradientId) => {
+    const grad = GRADIENTS.find(g => g.id === gradientId) || GRADIENTS[0];
+    return `linear-gradient(135deg, ${grad.from}, ${grad.to})`;
+};
+
 const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, livePlayers }) => {
 
     const socket = useSocket();
@@ -117,13 +131,19 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, livePlayers
                             const nativePlayer = laneIndex === myLaneIndex;
                             let laneProgress = 0;
                             let oppId = null;
+                            let laneName = null;
+                            let laneGradient = null;
 
                             if(nativePlayer){
                                 laneProgress = progress;
+                                laneName = livePlayers?.[socket?.id]?.name;
+                                laneGradient = livePlayers?.[socket?.id]?.avatarGradient;
                             } else {
                                 const oppIndex = laneIndex < myLaneIndex ? laneIndex : laneIndex - 1;
                                 oppId = oppIds[oppIndex];
                                 laneProgress = opponents[oppId]?.progress || 0;
+                                laneName = livePlayers?.[oppId]?.name;
+                                laneGradient = livePlayers?.[oppId]?.avatarGradient;
                             }
 
                             const isFinished = laneProgress >= 100;
@@ -164,12 +184,12 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, livePlayers
                                         <div 
                                             className="w-8 h-8 rounded-full z-10 flex items-center justify-center font-bold text-white text-xs transition-colors duration-500"
                                             style={{
-                                                backgroundColor: borderColor,
+                                                background: laneGradient ? getGradientStyle(laneGradient) : borderColor,
                                                 boxShadow: glowShadow,
                                                 transform: 'rotateX(-60deg)' 
                                             }}
                                         >
-                                            {isFinished ? '✓' : (nativePlayer ? 'Y' : 'O')}
+                                            {isFinished ? '✓' : (laneName ? laneName.charAt(0).toUpperCase() : (nativePlayer ? 'Y' : 'O'))}
                                             {!isFinished && (
                                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 w-4 h-32 opacity-50 blur-sm rounded-full" 
                                                      style={{ background: `linear-gradient(to bottom, ${borderColor}, transparent)` }}
@@ -183,13 +203,13 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, livePlayers
                     </div>
                 </div>
 
-                {/* InputPanel */}
+                {/* InputPanel*/}
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-[800px] flex flex-col gap-4">
                     
-                    {/*Stats Row */}
+                    {/*Stats Row*/}
                     <div className="relative flex justify-between items-end px-4 mb-2">
                         
-                        {/*Combo */}
+                        {/*Combo*/}
                         <div className="absolute left-1/2 -translate-x-1/2 flex justify-center items-center">
                             <div className={`text-2xl font-bold italic transition-all duration-300 ${combo >= 5 ? 'opacity-100 text-orange-400 drop-shadow-[0_0_15px_#ea580c] scale-110' : 'opacity-0 scale-90'}`}>
                                 {combo}x COMBO 🔥

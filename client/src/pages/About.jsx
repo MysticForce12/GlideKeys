@@ -58,7 +58,6 @@ const About = ({ onBack }) => {
     return (
         <div className="flex flex-col items-center w-full max-w-5xl mx-auto px-6 animate-fade-in">
 
-            {/* Hero Section */}
             <div className="text-center mt-10 mb-14 relative">
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-72 h-72 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
                 <h2 className="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#38bdf8] via-[#818cf8] to-[#f472b6] mb-5 relative z-10 leading-tight">
@@ -70,7 +69,6 @@ const About = ({ onBack }) => {
                 </p>
             </div>
 
-            {/* What is Glide Keys */}
             <div className="w-full bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 rounded-3xl p-8 md:p-10 mb-12 backdrop-blur-sm">
                 <div className="flex items-center gap-3 mb-5">
                     <span className="text-3xl">🎮</span>
@@ -87,7 +85,7 @@ const About = ({ onBack }) => {
                 </p>
             </div>
 
-            {/* Features Grid */}
+
             <div className="w-full mb-14">
                 <div className="text-center mb-8">
                     <h3 className="text-3xl font-bold text-white mb-2">What the Game Offers</h3>
@@ -108,7 +106,6 @@ const About = ({ onBack }) => {
                 </div>
             </div>
 
-            {/* How to Play */}
             <div className="w-full mb-14">
                 <div className="text-center mb-8">
                     <h3 className="text-3xl font-bold text-white mb-2">How to Play</h3>
@@ -130,7 +127,6 @@ const About = ({ onBack }) => {
                 </div>
             </div>
 
-            {/* Tech Stack */}
             <div className="w-full mb-14">
                 <div className="text-center mb-8">
                     <h3 className="text-3xl font-bold text-white mb-2">Built With</h3>
@@ -146,7 +142,6 @@ const About = ({ onBack }) => {
                 </div>
             </div>
 
-            {/* Call to Action */}
             <div className="w-full text-center mb-16 py-10 rounded-3xl bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-slate-700/30">
                 <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">Ready to Race?</h3>
                 <p className="text-gray-400 mb-6 text-base">Jump back to the dashboard and start typing.</p>
@@ -154,7 +149,7 @@ const About = ({ onBack }) => {
                     onClick={onBack}
                     className="px-8 py-3 rounded-xl bg-gradient-to-r from-[#38bdf8] to-[#6366f1] text-white font-bold text-base hover:scale-105 hover:shadow-[0_0_30px_rgba(56,189,248,0.4)] transition-all duration-300"
                 >
-                    ⌨️ Start Playing
+                    Start Playing
                 </button>
             </div>
 

@@ -62,6 +62,8 @@ const Profile = () => {
                 avatarGradient: selectedGrad,
             });
             setUserData(res.data);
+            localStorage.setItem('gk_name', editName.trim().toLowerCase());
+            localStorage.setItem('gk_avatarGradient', selectedGrad);
             setEditingName(false);
             setShowGradPicker(false);
             setIsDirty(false);
@@ -192,7 +194,7 @@ const Profile = () => {
                             </div>
                         </div>
 
-                        {/* Gradient picker*/}
+                        {/* gradient picker*/}
                         {showGradPicker && (
                             <div className="mt-5 p-4 bg-slate-900/80 border border-slate-700/80 rounded-2xl">
                                 <p className="m-0 mb-3 text-[10px] font-bold tracking-[0.3em] uppercase text-slate-500">
@@ -248,7 +250,7 @@ const Profile = () => {
                     </div>
                 </div>
 
-                {/* Stats-grid*/}
+                {/* Stats grid*/}
                 <div>
                     <p className="m-0 mb-3 text-[10px] font-bold tracking-[0.3em] uppercase text-slate-500">
                         Your Stats
@@ -278,7 +280,6 @@ const Profile = () => {
                     </p>
                 </div>
 
-                {/* Action Buttons*/}
                 <button
                     onClick={() => navigate('/play')}
                     className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-blue-600/10 border border-blue-600/30 text-white cursor-pointer font-semibold text-base transition-all duration-200 hover:bg-blue-600/20 hover:border-blue-600/50"

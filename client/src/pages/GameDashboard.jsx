@@ -35,6 +35,10 @@ function GameDashboard(){
         setName(dname);
         localStorage.setItem('gk_username', uname);
         localStorage.setItem('gk_name', dname);
+        localStorage.setItem('gk_avatarGradient', res.data.avatarGradient || 'purple-blue');
+        if (res.data._id) {
+            localStorage.setItem('gk_userId', res.data._id);
+        }
       })
       .catch(() => {});
   }, []);
@@ -49,9 +53,7 @@ function GameDashboard(){
       setroomId(roomId);
       setLivePlayers(playersInRoom);
       if(mode) setGameMode(mode);
-      // Solo mode skips the lobby — go straight to searching/countdown
       if(mode === 'solo'){
-        // Don't set to lobby; countdown_start will set the state
         console.log('Solo match found, waiting for countdown...');
       } else {
         setGameState("lobby");
@@ -136,8 +138,11 @@ function GameDashboard(){
 
   const handlePlay = (mode) => {
     const dbUserId = localStorage.getItem('gk_userId'); 
+    const token = localStorage.getItem('token');
+    const clientName = localStorage.getItem('gk_name') || localStorage.getItem('gk_username') || '';
+    const clientAvatar = localStorage.getItem('gk_avatarGradient') || 'purple-blue';
     setGameMode(mode);
-    socket.emit('find_match', { userId: dbUserId, mode });
+    socket.emit('find_match', { userId: dbUserId, token, mode, clientName, clientAvatar });
     setGameState("searching");
   }
   
@@ -147,7 +152,6 @@ function GameDashboard(){
     if(socket){
       socket.emit('play_again', {roomId});
     }
-    // For solo mode, don't go to lobby — the server will send countdown_start
     if(gameMode === 'solo'){
       setGameState("searching");
     } else {
@@ -215,6 +219,7 @@ function GameDashboard(){
       {gameState === "results" && (
         <Results 
           myWPM={myWPM}
+          myName={name}
           finalPlayers={finalResults}
           handleExit={handleExit}
           handlePlayAgain={handlePlayAgain}
