@@ -6,6 +6,7 @@ import Lobby from './Lobby';
 import Arena from './Arena';
 import Results from './Results';
 import About from './About';
+import Leaderboard from './Leaderboard';
 import ComingSoon from './ComingSoon';
 import api from '../utils/api';
 
@@ -231,7 +232,7 @@ function GameDashboard(){
       )}
 
       {gameState === "leaderboard" && (
-        <ComingSoon page="leaderboard" onBack={() => setGameState("Home")} />
+        <Leaderboard onBack={() => setGameState("Home")} />
       )}
 
       {gameState === "history" && (

@@ -39,6 +39,18 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    bestRaceWPM: {
+        type: Number,
+        default: 0
+    },
+    bestRaceMode: {
+        type: String,
+        default: ''
+    },
+    bestRaceDate: {
+        type: Date,
+        default: null
+    },
     avatarGradient: {
         type: String,
         default: 'purple-blue'

@@ -105,12 +105,20 @@ const checkRaceCompletion = async (roomId) => {
 
             const newWins = isWinner ? (user.wins || 0) + 1 : (user.wins || 0);
 
-            await User.findByIdAndUpdate(playerStats.dbUserId, {
+            let updateFields = {
               avgWPM: newAvgWPM,
               maxWPM: newMaxWPM,
               totalMatches: newTotal,
               wins: newWins
-            });
+            };
+
+            if (room.mode !== 'solo' && playerStats.wpm > (user.bestRaceWPM || 0)) {
+              updateFields.bestRaceWPM = playerStats.wpm;
+              updateFields.bestRaceMode = room.mode;
+              updateFields.bestRaceDate = new Date();
+            }
+
+            await User.findByIdAndUpdate(playerStats.dbUserId, updateFields);
 
             console.log(`Db update Saved user: ${user.username}, totalMatches: ${newTotal}, avgWPM: ${newAvgWPM}, wins: ${newWins}`);
           }

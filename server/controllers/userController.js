@@ -43,7 +43,22 @@ const updateProfileController = async (req, res) => {
     }
 };
 
+const getLeaderboardController = async (req, res) => {
+    try {
+        const topUsers = await User.find({ bestRaceWPM: { $gt: 0 } })
+            .sort({ bestRaceWPM: -1 })
+            .limit(100)
+            .select('name username avatarGradient bestRaceWPM bestRaceMode bestRaceDate');
+            
+        res.status(200).json(topUsers);
+    } catch (err) {
+        console.error("Error fetching leaderboard:", err);
+        res.status(500).json({ message: 'Server error while fetching leaderboard' });
+    }
+};
+
 module.exports = {
     getProfileController,
     updateProfileController,
+    getLeaderboardController,
 };
