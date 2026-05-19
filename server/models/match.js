@@ -1,21 +1,26 @@
 const mongoose = require('mongoose');
 
 const matchSchema = new mongoose.Schema({
-    players:[{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    }],
-    winner:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        default: null
+    mode: {
+        type: String,
+        required: true,
+        enum: ['arena', '1v1', 'solo']
     },
-    quote:{
+    quote: {
         type: String,
         required: true
-    }
-},{
+    },
+    players: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        name: String,
+        avatarGradient: String,
+        wpm: Number,
+        placement: Number
+    }]
+}, {
     timestamps: true
 });
 

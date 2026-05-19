@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Match = require('../models/match');
 
 const getProfileController = async (req, res) => {
     try {
@@ -57,8 +58,23 @@ const getLeaderboardController = async (req, res) => {
     }
 };
 
+const getMatchLogsController = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const logs = await Match.find({ 'players.userId': userId })
+            .sort({ createdAt: -1 })
+            .limit(10);
+            
+        res.status(200).json(logs);
+    } catch (err) {
+        console.error("Error fetching match logs:", err);
+        res.status(500).json({ message: 'Server error while fetching match logs' });
+    }
+};
+
 module.exports = {
     getProfileController,
     updateProfileController,
     getLeaderboardController,
+    getMatchLogsController,
 };

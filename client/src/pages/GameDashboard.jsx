@@ -7,7 +7,7 @@ import Arena from './Arena';
 import Results from './Results';
 import About from './About';
 import Leaderboard from './Leaderboard';
-import ComingSoon from './ComingSoon';
+import History from './History';
 import api from '../utils/api';
 
 function GameDashboard(){
@@ -236,7 +236,7 @@ function GameDashboard(){
       )}
 
       {gameState === "history" && (
-        <ComingSoon page="history" onBack={() => setGameState("Home")} />
+        <History onBack={() => setGameState("Home")} />
       )}
 
     </div>

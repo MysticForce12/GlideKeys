@@ -14,6 +14,7 @@ const connectDB = require('./config/db');
 connectDB();
 
 const User = require('./models/User');
+const Match = require('./models/match');
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -129,6 +130,33 @@ const checkRaceCompletion = async (roomId) => {
     } catch (error) {
       console.error("Db error updating player stats:", error);
     }
+
+    try {
+      // create andd save the match record
+      const sortedPlayers = currentPlayers.map(p => ({
+        userId: p.dbUserId || null,
+        name: p.name || null,
+        avatarGradient: p.avatarGradient || 'purple-blue',
+        wpm: p.wpm || 0
+      })).sort((a, b) => b.wpm - a.wpm);
+
+      sortedPlayers.forEach((p, index) => {
+        p.placement = index + 1;
+      });
+
+      const newMatch = new Match({
+        mode: room.mode || 'arena',
+        quote: room.quote,
+        players: sortedPlayers
+      });
+
+      await newMatch.save();
+      console.log(`Saved new Match log with ${sortedPlayers.length} players`);
+    } 
+    catch(matchErr){
+      console.error("Error saving match log:", matchErr);
+    }
+
     io.to(roomId).emit('race_ended', {
       finalPlayers: room.players
     });
@@ -142,18 +170,21 @@ io.on('connection', async (socket) => {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.dbUserId = decoded.id;
-      try {
+      try{
         const user = await User.findById(decoded.id).select('name username avatarGradient');
         socket.playerName = user?.name || user?.username || null;
         socket.avatarGradient = user?.avatarGradient || 'purple-blue';
-      } catch (err) {
+      } 
+      catch (err) {
         socket.playerName = null;
       }
       console.log(`A user connected: socket=${socket.id} dbUserId=${socket.dbUserId} name=${socket.playerName}`);
-    } else {
+    } 
+    else {
       console.log(`A user connected (no token): socket=${socket.id}`);
     }
-  } catch (e) {
+  } 
+  catch (e) {
     console.log(`A user connected (invalid token): socket=${socket.id}`);
   }
 
@@ -169,7 +200,8 @@ io.on('connection', async (socket) => {
         socket.dbUserId = decoded.id;
         decodedUsername = decoded.username;
         console.log(`[find_match] Decoded token: userId=${userId}, username=${decodedUsername}`);
-      } catch (e) {
+      } 
+      catch (e) {
         console.error("[find_match] Invalid token provided by client");
       }
     }
@@ -185,17 +217,20 @@ io.on('connection', async (socket) => {
           socket.playerName = user.name || user.username || decodedUsername || data.clientName || null;
           socket.avatarGradient = user.avatarGradient || data.clientAvatar || 'purple-blue';
           console.log(`[find_match] DB Lookup success: name=${socket.playerName}, gradient=${socket.avatarGradient}`);
-        } else {
+        } 
+        else {
           console.log(`[find_match] DB Lookup returned null for userId=${userId}`);
           socket.playerName = decodedUsername || data.clientName || null;
           socket.avatarGradient = data.clientAvatar || 'purple-blue';
         }
-      } catch (err) {
+      } 
+      catch (err) {
         console.error(`[find_match] Error fetching user ${userId}:`, err.message);
         socket.playerName = decodedUsername || data.clientName || null;
         socket.avatarGradient = data.clientAvatar || 'purple-blue';
       }
-    } else {
+    } 
+    else {
       console.log(`[find_match] CRITICAL WARNING: userId is completely null for socket ${socket.id}`);
       socket.playerName = decodedUsername || data?.clientName || null;
       socket.avatarGradient = data?.clientAvatar || 'purple-blue';
