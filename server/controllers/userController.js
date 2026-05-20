@@ -49,7 +49,7 @@ const getLeaderboardController = async (req, res) => {
         const topUsers = await User.find({ bestRaceWPM: { $gt: 0 } })
             .sort({ bestRaceWPM: -1 })
             .limit(100)
-            .select('name username avatarGradient bestRaceWPM bestRaceMode bestRaceDate');
+            .select('name username avatarGradient bestRaceWPM bestRaceMode bestRaceDate avgWPM maxWPM wins totalMatches createdAt');
             
         res.status(200).json(topUsers);
     } catch (err) {

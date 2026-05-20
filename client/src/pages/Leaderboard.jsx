@@ -1,39 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 
+const StatCard = ({ icon, label, value }) => (
+    <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 flex-1 min-w-[100px] text-center">
+        <span className="text-xl">{icon}</span>
+        <p className="m-0 text-[10px] font-bold tracking-[1px] uppercase text-slate-500">{label}</p>
+        <p className="m-0 text-2xl font-black text-white">{value ?? '—'}</p>
+    </div>
+);
+
 const timeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     
     let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
+    if(interval > 1) return Math.floor(interval) + " years ago";
     interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
+    if(interval > 1) return Math.floor(interval) + " months ago";
     interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
+    if(interval > 1) return Math.floor(interval) + " days ago";
     interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
+    if(interval > 1) return Math.floor(interval) + " hours ago";
     interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    if(interval > 1) return Math.floor(interval) + " minutes ago";
     return Math.floor(seconds) + " seconds ago";
 };
 
 const Leaderboard = ({ onBack }) => {
+
     const [leaders, setLeaders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
-            try {
+            try{
                 const res = await api.get('/users/leaderboard');
                 setLeaders(res.data);
-            } catch (err) {
+            } catch(err){
                 console.error("Failed to fetch leaderboard:", err);
-            } finally {
+            } finally{
                 setLoading(false);
             }
         };
 
         fetchLeaderboard();
+
     }, []);
 
     return (
@@ -65,7 +76,7 @@ const Leaderboard = ({ onBack }) => {
                             ) : leaders.length === 0 ? (
                                 <tr>
                                     <td colSpan="5" className="p-12 text-center text-gray-500 font-medium">
-                                        No records found yet. Be the first to set a high score!
+                                        No records found.
                                     </td>
                                 </tr>
                             ) : (
@@ -75,24 +86,24 @@ const Leaderboard = ({ onBack }) => {
                                     let rowStyle = "hover:bg-slate-800/40 transition-colors";
                                     let nameStyle = "text-gray-200";
                                     
-                                    if (index === 0) {
+                                    if(index === 0){
                                         rankBadge = "bg-gradient-to-br from-yellow-300 to-amber-600 shadow-[0_0_15px_rgba(251,191,36,0.5)] text-white";
                                         rowStyle = "bg-amber-500/5 hover:bg-amber-500/10 transition-colors";
                                         nameStyle = "text-amber-400 font-bold drop-shadow-md";
-                                    } else if (index === 1) {
+                                    } else if(index === 1){
                                         rankBadge = "bg-gradient-to-br from-gray-300 to-gray-500 shadow-[0_0_10px_rgba(156,163,175,0.4)] text-white";
                                         rowStyle = "bg-gray-400/5 hover:bg-gray-400/10 transition-colors";
                                         nameStyle = "text-gray-300 font-bold";
-                                    } else if (index === 2) {
+                                    } else if(index === 2){
                                         rankBadge = "bg-gradient-to-br from-orange-400 to-orange-700 shadow-[0_0_10px_rgba(234,88,12,0.4)] text-white";
                                         rowStyle = "bg-orange-500/5 hover:bg-orange-500/10 transition-colors";
                                         nameStyle = "text-orange-300 font-bold";
-                                    } else {
+                                    } else{
                                         rankBadge = "bg-slate-700 text-gray-400 font-semibold";
                                     }
 
                                     return (
-                                        <tr key={player._id} className={rowStyle}>
+                                        <tr key={player._id} className={`${rowStyle} cursor-pointer`} onClick={() => setSelectedUser(player)}>
                                             <td className="p-4 text-center">
                                                 <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm font-bold ${rankBadge}`}>
                                                     {index + 1}
@@ -140,6 +151,50 @@ const Leaderboard = ({ onBack }) => {
             >
                 Back to Home
             </button>
+
+            {selectedUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedUser(null)}>
+                    <div className="bg-[#0d1117] border border-slate-700/70 rounded-3xl w-full max-w-md overflow-hidden relative shadow-2xl transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                        <div className="h-[4px] bg-gradient-to-r from-amber-400 via-orange-500 to-red-500" />
+                        <div className="p-7">
+                            <button onClick={() => setSelectedUser(null)} className="absolute top-5 right-5 text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 rounded-full p-1">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <div className="flex items-center gap-5 mb-6">
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-[0_0_20px_rgba(0,0,0,0.3)] bg-gradient-to-br from-${selectedUser.avatarGradient?.split('-')[0] || 'purple'}-500 to-${selectedUser.avatarGradient?.split('-')[1] || 'blue'}-500`}>
+                                    {(selectedUser.name?.[0] || selectedUser.username?.[0] || 'U').toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-2xl font-black text-white capitalize m-0 truncate">{selectedUser.name || selectedUser.username}</h3>
+                                    <p className="text-slate-400 font-mono text-sm m-0 mt-1 truncate">@{selectedUser.username}</p>
+                                    {selectedUser.createdAt && (
+                                        <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-[0.1em]">
+                                            Joined {new Date(selectedUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-5">
+                                <StatCard icon="⚡" label="Avg WPM" value={Math.round(selectedUser.avgWPM || 0)} />
+                                <StatCard icon="🏆" label="Best WPM" value={selectedUser.maxWPM || selectedUser.bestRaceWPM || 0} />
+                                <StatCard icon="🥇" label="Total Wins" value={selectedUser.wins || 0} />
+                                <StatCard icon="🎮" label="Races Played" value={selectedUser.totalMatches || 0} />
+                            </div>
+                            {selectedUser.totalMatches > 0 && (
+                                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-700/70">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="font-bold text-slate-400 text-xs uppercase tracking-wider">Win Rate</span>
+                                        <span className="font-black text-xl text-white">{Math.round(((selectedUser.wins || 0) / selectedUser.totalMatches) * 100)}%</span>
+                                    </div>
+                                    <div className="h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                                        <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-red-500 transition-all duration-700 ease-out" style={{ width: `${Math.round(((selectedUser.wins || 0) / selectedUser.totalMatches) * 100)}%` }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

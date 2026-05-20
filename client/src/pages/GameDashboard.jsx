@@ -14,7 +14,7 @@ function GameDashboard(){
 
   const [gameState, setGameState] = useState("Home");
   const [username, setUsername] = useState(() => localStorage.getItem('gk_username') || '');
-  const [name,     setName]     = useState(() => localStorage.getItem('gk_name') || '');
+  const [name, setName] = useState(() => localStorage.getItem('gk_name') || '');
   const [countdown, setCountdown] = useState(5);
   const [startTime, setStartTime] = useState(null);
   const [livePlayers, setLivePlayers] = useState({});
@@ -37,7 +37,7 @@ function GameDashboard(){
         localStorage.setItem('gk_username', uname);
         localStorage.setItem('gk_name', dname);
         localStorage.setItem('gk_avatarGradient', res.data.avatarGradient || 'purple-blue');
-        if (res.data._id) {
+        if(res.data._id){
             localStorage.setItem('gk_userId', res.data._id);
         }
       })
@@ -56,7 +56,7 @@ function GameDashboard(){
       if(mode) setGameMode(mode);
       if(mode === 'solo'){
         console.log('Solo match found, waiting for countdown...');
-      } else {
+      } else{
         setGameState("lobby");
       }
       console.log('Match found in room: ', roomId, 'mode:', mode);
@@ -155,7 +155,7 @@ function GameDashboard(){
     }
     if(gameMode === 'solo'){
       setGameState("searching");
-    } else {
+    } else{
       setGameState("lobby");
     }
   };
