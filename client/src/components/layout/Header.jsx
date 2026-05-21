@@ -12,7 +12,7 @@ const Header = ({ gameState, setGameState, username, name }) => {
     };
 
     return (
-        <header className="w-full max-w-6xl mx-auto flex justify-between items-center mb-12 px-4">
+        <header className="sticky top-4 z-50 w-full max-w-6xl mx-auto flex justify-between items-center mb-12 px-6 py-4 bg-[#0d1117]/80 backdrop-blur-xl rounded-2xl border border-slate-800/80 shadow-2xl">
 
             <div className="flex items-center gap-3 cursor-pointer group" onClick={goHome}>
                 <div className="bg-gradient-to-br from-[#38bdf8] to-[#6366f1] p-1.5 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.4)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 ease-out">
