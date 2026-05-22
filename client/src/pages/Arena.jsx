@@ -220,7 +220,7 @@ const Arena = ({ targetText, roomId, gameState, startTime, setMyWPM, livePlayers
                     <div className={`relative w-full bg-[#111620]/90 backdrop-blur-xl border ${ isMistakeFlicker? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'border-gray-700/50'} rounded-2xl px-8 overflow-hidden`}
                         style={{ height: '80px' }} 
                     >
-                        <div className="flex flex-col justify-center h-full">
+                        <div className="flex flex-col justify-start h-full">
                             
                             <div className="relative z-20 pointer-events-none break-words text-2xl transition-transform duration-300 ease-out"
                                 style={{ 
