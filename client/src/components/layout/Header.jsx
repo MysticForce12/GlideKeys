@@ -48,6 +48,12 @@ const Header = ({ gameState, setGameState, username, name }) => {
                     History
                 </button>
                 <button
+                    onClick={() => setGameState('friends')}
+                    className={`transition-all hover:text-white ${gameState === 'friends' ? "text-white relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-emerald-500" : "hover:-translate-y-0.5"}`}
+                >
+                    Friends
+                </button>
+                <button
                     onClick={() => setGameState('about')}
                     className={`transition-all hover:text-white ${gameState === 'about' ? "text-white relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-0.5 after:bg-purple-500" : "hover:-translate-y-0.5"}`}
                 >

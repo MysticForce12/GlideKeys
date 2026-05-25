@@ -8,6 +8,7 @@ import Results from './Results';
 import About from './About';
 import Leaderboard from './Leaderboard';
 import History from './History';
+import Friends from './Friends';
 import api from '../utils/api';
 
 function GameDashboard(){
@@ -237,6 +238,10 @@ function GameDashboard(){
 
       {gameState === "history" && (
         <History onBack={() => setGameState("Home")} />
+      )}
+
+      {gameState === "friends" && (
+        <Friends onBack={() => setGameState("Home")} />
       )}
 
     </div>
