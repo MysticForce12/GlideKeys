@@ -1,71 +1,75 @@
 import React from 'react';
+import arenaIcon from '../assets/icons/arena2-icon.png';
+import customIcon from '../assets/icons/custom-icon.png';
+import duelIcon from '../assets/icons/duel-icon.png';
+import practiseIcon from '../assets/icons/practise-icon.png';
 
 const Home = ({ handlePlay, handleCustomRoom }) => {
 
     const gameModes = [
         {
-            id: 'solo',
-            title: 'Solo Practice',
-            desc: 'Warm up your fingers with no pressure.',
-            icon: '🎯', 
-            glowColor: 'group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]',
-            accent: 'bg-emerald-500'
-        },
-        {
-            id: '1v1',
-            title: '1v1 Duel',
-            desc: 'Fast-paced, head-to-head typing battle.',
-            icon: '⚔️',
-            glowColor: 'group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]',
-            accent: 'bg-orange-500'
-        },
-        {
             id: 'arena',
             title: 'Arena',
             desc: 'The classic chaotic multiplayer race with up to 5 players.',
-            icon: '🏎️',
-            glowColor: 'group-hover:shadow-[0_0_20px_rgba(79,70,229,0.3)]',
-            accent: 'bg-indigo-500'
+            icon: <img src={arenaIcon} alt="Arena Icon" className="w-20 h-20 md:w-24 md:h-24 object-contain relative z-10" />,
+            glowColor: 'group-hover:shadow-[0_0_28px_rgba(56,189,248,0.2)]',
+        },
+        {
+            id: 'solo',
+            title: 'Practice',
+            desc: 'Warm up your fingers with no pressure.',
+            icon: <img src={practiseIcon} alt="Arena Icon" className="w-20 h-20 md:w-24 md:h-24 object-contain relative z-10" />,
+            glowColor: 'group-hover:shadow-[0_0_16px_rgba(56,189,248,0.08)]',
+        },
+        {
+            id: 'duel',
+            title: 'Duel',
+            desc: 'Fast-paced, head-to-head typing battle.',
+            icon: <img src={duelIcon} alt="Arena Icon" className="w-20 h-20 md:w-24 md:h-24 object-contain relative z-10" />,
+            glowColor: 'group-hover:shadow-[0_0_16px_rgba(244,114,182,0.1)]',
         },
         {
             id: 'custom',
-            title: 'Custom Room',
+            title: 'Custom',
             desc: 'Create or join a private room with friends.',
-            icon: '👑',
-            glowColor: 'group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]',
-            accent: 'bg-purple-500'
-        }
+            icon: <img src={customIcon} alt="Arena Icon" className="w-20 h-20 md:w-24 md:h-24 object-contain relative z-10" />,
+            glowColor: 'group-hover:shadow-[0_0_16px_rgba(129,140,248,0.1)]',
+        },
     ];
 
     return (
-        <div className="flex flex-col items-center justify-center mt-16 space-y-10 animate-fade-in w-full max-w-4xl mx-auto px-6">
+        <main className="flex flex-col items-center justify-center mt-16 space-y-10 animate-fade-in w-full max-w-4xl mx-auto px-6">
             <div className="text-center">
                 <h2 className="text-4xl font-extrabold text-white mb-3 tracking-wide">Choose Your Game Mode</h2>
-                <p className="text-gray-400 text-lg">Select a game mode to start typing.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {gameModes.map((mode) => (
                     <button
                         key={mode.id}
+                        type="button"
                         onClick={() => mode.id === 'custom' ? handleCustomRoom() : handlePlay(mode.id)}
-                        className={`group relative flex flex-col items-start p-6 rounded-2xl bg-slate-800/40 border border-slate-700 hover:border-slate-500 hover:-translate-y-1 transition-all duration-300 text-left overflow-hidden ${mode.glowColor}`}
+                        className={`group relative flex flex-col items-start rounded-2xl text-left overflow-hidden transition-all duration-300 p-6 bg-slate-800/40 border border-slate-700/80 hover:border-[#38bdf8]/30 hover:-translate-y-1 ${mode.glowColor}`}
                     >
-                        <div className="flex items-center justify-between w-full mb-4">
-                            <span className="text-3xl">{mode.icon}</span>
-                            <div className={`h-2 w-2 rounded-full ${mode.accent} opacity-50 group-hover:opacity-100 shadow-[0_0_8px_currentColor] transition-opacity`}></div>
+                        <div className="flex w-full gap-5 md:gap-6 items-start">
+                            <span className="text-4xl md:text-5xl flex-shrink-0 mt-1" aria-hidden>
+                                {mode.icon}
+                            </span>
+                            <div className="flex-grow flex flex-col items-start w-full">
+                                <div className="flex items-start justify-between w-full mb-1 gap-2">
+                                    <h3 className="font-bold text-gray-200 group-hover:text-white transition-colors text-left text-2xl">
+                                        {mode.title}
+                                    </h3>
+                                </div>
+                                <p className="text-gray-400 text-left text-sm">
+                                    {mode.desc}
+                                </p>
+                            </div>
                         </div>
-                        
-                        <h3 className="text-2xl font-bold text-gray-200 mb-2 group-hover:text-white transition-colors">
-                            {mode.title}
-                        </h3>
-                        <p className="text-gray-400 text-sm">
-                            {mode.desc}
-                        </p>
                     </button>
                 ))}
             </div>
-        </div>
+        </main>
     );
 };
 

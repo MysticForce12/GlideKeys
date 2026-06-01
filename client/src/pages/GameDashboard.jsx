@@ -11,7 +11,7 @@ import History from './History';
 import Friends from './Friends';
 import api from '../utils/api';
 
-function GameDashboard(){
+function GameDashboard() {
 
   const [gameState, setGameState] = useState("Home");
   const [username, setUsername] = useState(() => localStorage.getItem('gk_username') || '');
@@ -38,54 +38,54 @@ function GameDashboard(){
         localStorage.setItem('gk_username', uname);
         localStorage.setItem('gk_name', dname);
         localStorage.setItem('gk_avatarGradient', res.data.avatarGradient || 'purple-blue');
-        if(res.data._id){
-            localStorage.setItem('gk_userId', res.data._id);
+        if (res.data._id) {
+          localStorage.setItem('gk_userId', res.data._id);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
 
-    socket.on('connect',()=>{
+    socket.on('connect', () => {
       console.log('connected');
     })
 
-    socket.on('match_found',({roomId, playersInRoom, mode})=>{
+    socket.on('match_found', ({ roomId, playersInRoom, mode }) => {
       setroomId(roomId);
       setLivePlayers(playersInRoom);
-      if(mode) setGameMode(mode);
-      if(mode === 'solo'){
+      if (mode) setGameMode(mode);
+      if (mode === 'solo') {
         console.log('Solo match found, waiting for countdown...');
-      } else{
+      } else {
         setGameState("lobby");
       }
       console.log('Match found in room: ', roomId, 'mode:', mode);
     });
 
     socket.on('player_joined_room', ({ playerId, playerData }) => {
-        setLivePlayers(prev => ({
-            ...prev,
-            [playerId]: playerData
-        }));
+      setLivePlayers(prev => ({
+        ...prev,
+        [playerId]: playerData
+      }));
     });
 
     socket.on('player_ready_status', ({ playerId, isReady }) => {
-        setLivePlayers(prev => ({
-            ...prev,
-            [playerId]: { ...prev[playerId], isReady: isReady }
-        }));
+      setLivePlayers(prev => ({
+        ...prev,
+        [playerId]: { ...prev[playerId], isReady: isReady }
+      }));
     });
 
     socket.on('opponent_left', ({ playerId }) => {
-        setLivePlayers(prev => {
-            const updated = { ...prev };
-            delete updated[playerId];
-            return updated;
-        });
+      setLivePlayers(prev => {
+        const updated = { ...prev };
+        delete updated[playerId];
+        return updated;
+      });
     });
 
-    socket.on('countdown_start',()=>{
+    socket.on('countdown_start', () => {
       setGameState("countdown");
       let time = 5;
       setCountdown(time);
@@ -96,36 +96,36 @@ function GameDashboard(){
       }, 1000);
     })
 
-    socket.on('game_started',({quote})=>{
+    socket.on('game_started', ({ quote }) => {
       setTargetText(quote);
       setGameState("playing");
       setStartTime(Date.now());
     });
 
-    socket.on('opponent_finished',({playerId, wpm})=>{
-      setLivePlayers(prevPlayers =>({
+    socket.on('opponent_finished', ({ playerId, wpm }) => {
+      setLivePlayers(prevPlayers => ({
         ...prevPlayers,
-        [playerId]:{
+        [playerId]: {
           ...prevPlayers[playerId],
           wpm: wpm
         }
       }))
     });
 
-    socket.on('player_reset',({playerId, playerData})=>{
+    socket.on('player_reset', ({ playerId, playerData }) => {
       setLivePlayers(prev => ({
         ...prev,
         [playerId]: playerData
       }));
     });
 
-    socket.on('race_ended', ({finalPlayers}) => {
+    socket.on('race_ended', ({ finalPlayers }) => {
       setFinalResults(finalPlayers);
       setGameState("results");
     });
 
 
-    return()=>{
+    return () => {
       socket.off('connect');
       socket.off('match_found');
       socket.off('countdown_start');
@@ -136,10 +136,10 @@ function GameDashboard(){
       socket.off('opponent_left');
       socket.off('race_ended');
     }
-  },[]);
+  }, []);
 
   const handlePlay = (mode) => {
-    const dbUserId = localStorage.getItem('gk_userId'); 
+    const dbUserId = localStorage.getItem('gk_userId');
     const token = localStorage.getItem('token');
     const clientName = localStorage.getItem('gk_name') || localStorage.getItem('gk_username') || '';
     const clientAvatar = localStorage.getItem('gk_avatarGradient') || 'purple-blue';
@@ -147,16 +147,16 @@ function GameDashboard(){
     socket.emit('find_match', { userId: dbUserId, token, mode, clientName, clientAvatar });
     setGameState("searching");
   }
-  
+
 
   const handlePlayAgain = () => {
     setTargetText("");
-    if(socket){
-      socket.emit('play_again', {roomId});
+    if (socket) {
+      socket.emit('play_again', { roomId });
     }
-    if(gameMode === 'solo'){
+    if (gameMode === 'solo') {
       setGameState("searching");
-    } else{
+    } else {
       setGameState("lobby");
     }
   };
@@ -167,83 +167,84 @@ function GameDashboard(){
     setTargetText("");
     setGameMode('arena');
     setGameState("Home");
-    socket.emit('leave_room', {roomId});
+    socket.emit('leave_room', { roomId });
   }
 
-  return(
+  return (
 
-    <div className="min-h-screen bg-[#0d1117] text-white font-sans p-8">
+    <div className="min-h-screen bg-[#0d1117] text-white font-sans">
 
-      <Header gameState={gameState} setGameState={setGameState} username={username} name={name}/>
+      <Header gameState={gameState} setGameState={setGameState} username={username} name={name} />
+      <div className="px-8 pb-8">
+        {gameState === "Home" && (
+          <Home handlePlay={handlePlay} />
+        )}
 
-      {gameState === "Home" && (
-        <Home handlePlay={handlePlay}/>
-      )}
-
-      {gameState === "searching" && (
-        <div className="flex flex-col items-center justify-center mt-32 space-y-6">
-          <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-          <h2 className="text-2xl font-semibold text-blue-400 animate-pulse">Searching for opponent...</h2>
-        </div>
-      )}
-      
- 
-      {gameState === "lobby" && (
-        <Lobby 
-          roomId={roomId} 
-          handleExit={handleExit}
-          livePlayers={livePlayers}
-          setLivePlayers={setLivePlayers}
-          gameMode={gameMode}
-        />
-      )}
-
-      {gameState === "countdown" && (
-        <div className="flex flex-col items-center justify-center mt-32">
-          <h2 className="text-2xl text-gray-400 uppercase tracking-widest mb-4 font-semibold">Get Ready</h2>
-          <div className="text-9xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-600 animate-pulse drop-shadow-2xl">
-            {countdown}
+        {gameState === "searching" && (
+          <div className="flex flex-col items-center justify-center mt-32 space-y-6">
+            <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+            <h2 className="text-2xl font-semibold text-blue-400 animate-pulse">Searching for opponent...</h2>
           </div>
-        </div>
-      )}
+        )}
 
-      {gameState === "playing" && (
-        <Arena 
-          targetText={targetText}
-          roomId={roomId}
-          gameState={gameState}
-          startTime={startTime}
-          setMyWPM={setMyWPM}
-          livePlayers={livePlayers}
-        />
-      )}
 
-      {gameState === "results" && (
-        <Results 
-          myWPM={myWPM}
-          myName={name}
-          finalPlayers={finalResults}
-          handleExit={handleExit}
-          handlePlayAgain={handlePlayAgain}
-        />
-      )}
+        {gameState === "lobby" && (
+          <Lobby
+            roomId={roomId}
+            handleExit={handleExit}
+            livePlayers={livePlayers}
+            setLivePlayers={setLivePlayers}
+            gameMode={gameMode}
+          />
+        )}
 
-      {gameState === "about" && (
-        <About onBack={() => setGameState("Home")} />
-      )}
+        {gameState === "countdown" && (
+          <div className="flex flex-col items-center justify-center mt-32">
+            <h2 className="text-2xl text-gray-400 uppercase tracking-widest mb-4 font-semibold">Get Ready</h2>
+            <div className="text-9xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-600 animate-pulse drop-shadow-2xl">
+              {countdown}
+            </div>
+          </div>
+        )}
 
-      {gameState === "leaderboard" && (
-        <Leaderboard onBack={() => setGameState("Home")} />
-      )}
+        {gameState === "playing" && (
+          <Arena
+            targetText={targetText}
+            roomId={roomId}
+            gameState={gameState}
+            startTime={startTime}
+            setMyWPM={setMyWPM}
+            livePlayers={livePlayers}
+          />
+        )}
 
-      {gameState === "history" && (
-        <History onBack={() => setGameState("Home")} />
-      )}
+        {gameState === "results" && (
+          <Results
+            myWPM={myWPM}
+            myName={name}
+            finalPlayers={finalResults}
+            handleExit={handleExit}
+            handlePlayAgain={handlePlayAgain}
+          />
+        )}
 
-      {gameState === "friends" && (
-        <Friends onBack={() => setGameState("Home")} />
-      )}
+        {gameState === "about" && (
+          <About onBack={() => setGameState("Home")} />
+        )}
 
+        {gameState === "leaderboard" && (
+          <Leaderboard onBack={() => setGameState("Home")} />
+        )}
+
+        {gameState === "history" && (
+          <History onBack={() => setGameState("Home")} />
+        )}
+
+        {gameState === "friends" && (
+          <Friends onBack={() => setGameState("Home")} />
+        )}
+
+      </div>
     </div>
   );
 }
